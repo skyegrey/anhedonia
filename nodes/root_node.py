@@ -1,0 +1,2 @@
+class RootNode:
+    pass
