@@ -9,8 +9,3 @@ class RootNode(FunctionNode):
     
     def get_decision(self):
         return self.calculate()
-
-
-if __name__ == '__main__':
-    test_root_node = RootNode([TerminalNode(5)])
-    print(test_root_node.get_decision())
