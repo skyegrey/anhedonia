@@ -1,2 +1,16 @@
-class RootNode:
-    pass
+from function_node import FunctionNode
+from terminal_node import TerminalNode
+
+
+class RootNode(FunctionNode):
+    "Calculates the amount to invest or sell"
+    def __init__(self, child_nodes):
+        super().__init__(child_nodes)
+    
+    def get_decision(self):
+        return self.calculate()
+
+
+if __name__ == '__main__':
+    test_root_node = RootNode([TerminalNode(5)])
+    print(test_root_node.get_decision())
