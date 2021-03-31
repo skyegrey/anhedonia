@@ -7,6 +7,8 @@ def score_tree(tree):
         return 0    
 
     # Spoof the trade
+    if decision < 0:
+        return 0
 
     # Calculate the gain or loss of the trade in EV
-    return 0
+    return 10

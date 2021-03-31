@@ -7,7 +7,7 @@ class RootNode(FunctionNode):
 
     def __init__(self, child_nodes):
         super().__init__(child_nodes)
-        self.purchasing_power = 1000
+        self.purchasing_power = 20
     
     def get_decision(self):
         return self.calculate()
