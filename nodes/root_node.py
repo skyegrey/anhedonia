@@ -1,5 +1,4 @@
-from function_node import FunctionNode
-from terminal_node import TerminalNode
+from nodes.function_node import FunctionNode
 
 
 class RootNode(FunctionNode):

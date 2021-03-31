@@ -5,10 +5,21 @@ from nodes.terminal_node import TerminalNode
 class PopulationManager:
 
     def __init__(self):
-        self.population = []
+        self.population = self.generate_initial_population()
+
+    @staticmethod
+    def generate_initial_population():
+        return [RootNode([TerminalNode(5)])]
 
     def generate_next_generation(self):
-        self.population = RootNode(TerminalNode(5))
+        self.population = [RootNode([TerminalNode(5)])]
+
+    def sort_population(self):
+        self.population.sort(key=lambda tree: self.score_tree(tree))
+
+    def get_best_candidate(self):
+        self.sort_population()
+        return self.population[0]
 
     @staticmethod
     def score_tree(tree):
