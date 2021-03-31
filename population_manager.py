@@ -1,5 +1,6 @@
 from nodes.root_node import RootNode
 from nodes.terminal_node import TerminalNode
+from random import randint
 
 
 class PopulationManager:
@@ -9,6 +10,13 @@ class PopulationManager:
 
     @staticmethod
     def generate_initial_population():
+        # Select a function to serve as the root of the node
+        # Skip this step for now, all nodes are addition based
+
+        # Select a terminal for each endpoint of the selected function (based on arity)
+
+        # Randomly assign a value to the terminal node
+
         return [RootNode([TerminalNode(5)])]
 
     def generate_next_generation(self):
