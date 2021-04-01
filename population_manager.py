@@ -17,7 +17,7 @@ class PopulationManager:
         node_function = NodeFunction('addition', 5)
 
         population = []
-        for __ in range(self.population_size):
+        for _ in range(self.population_size):
             number_of_nodes = randint(1, node_function.max_arity)
             nodes = [TerminalNode(randint(0, 10)) for _ in range(number_of_nodes)]
             root = RootNode(nodes)
