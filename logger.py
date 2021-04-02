@@ -14,6 +14,9 @@ class FileLogger:
     def info(self, message):
         self.send_to_logger('INFO', message)
 
+    def debug(self, message, variable):
+        self.send_to_logger('DEBUG', f'{message}{str(variable)}')
+
 
 class Logger:
 
