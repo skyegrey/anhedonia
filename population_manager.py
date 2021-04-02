@@ -4,6 +4,7 @@ from random import randint
 from collections import namedtuple
 from logging_decorators import logged_initializer, logged_class_function, logged_class
 from collections import defaultdict
+from time import sleep
 
 
 @logged_class
@@ -19,7 +20,8 @@ class PopulationManager:
     def get_real_time_data(self):
         config = {
             'keys_to_save': ['price'],
-            'frames': 1
+            'frames': 1,
+            'frame-time': 1
         }
         # Get current time
         # Setup API connection
@@ -28,18 +30,19 @@ class PopulationManager:
         api_key = '9f0216be33fc340939350523f2e6d36f'
         url = f"https://api.nomics.com/v1/currencies/ticker?key={api_key}&ids=BTC&interval=1d,30d&convert=EUR"
 
-        frame_data = defaultdict(lambda: defaultdict(list))
-        self.logger.info('Collecting Frame Data')
+        frame_data = defaultdict(dict)
         for frame in range(config['frames']):
+            self.logger.debug(f'Collecting data from frame: ', frame)
+            request_return = urllib.request.urlopen(url).read().decode()
+            stripped_request_return = request_return[1:-2]
+            request = loads(stripped_request_return)
             for key in config['keys_to_save']:
-                self.logger.debug(f'Frame', frame)
+                self.logger.debug(f'Collecting data for key: ', key)
                 current_frame_data = frame_data[frame]
-                request_return = urllib.request.urlopen(url).read().decode()
-                stripped_request_return = request_return[1:-2]
-                request = loads(stripped_request_return)
                 value = request[key]
-                self.logger.debug(f'{key}: ', value)
-                current_frame_data[key].append(value)
+                self.logger.debug(f'{key} value: ', value)
+                current_frame_data[key] = value
+            sleep(config['frame-time'])
 
         self.logger.debug(f'Frame Data: ', frame_data)
         return frame_data
@@ -66,28 +69,21 @@ class PopulationManager:
 
     @logged_class_function
     def sort_population(self):
-        self.population.sort(key=lambda tree: self.score_tree(tree), reverse=True)
+        sleep(1)
+        frame_data = self.get_real_time_data()
+        dollar_to_asset_ratio = 1 / frame_data[0]['price']
+        self.population.sort(key=lambda tree: self.score_tree(tree, dollar_to_asset_ratio), reverse=True)
 
     @logged_class_function
     def get_best_candidate(self):
         self.sort_population()
         return self.population[0]
 
-    @staticmethod
-    def score_tree(tree):
-        # Get the decision proposed by the tree for the next frame
-        decision = tree.get_decision()
-
-        # Return 0 if purchase is above balance available for the tree, or below balance available to trade
-        if decision > tree.purchasing_power:
-            return 0
-
-        # Spoof the trade
-        if decision < 0:
-            return 0
+    def score_tree(self, tree, dollar_to_asset_ratio):
+        tree_value = tree.purchasing_power + tree.asset_count * dollar_to_asset_ratio
 
         # Calculate the gain or loss of the trade in EV
-        return decision
+        return tree_value
 
 
 
