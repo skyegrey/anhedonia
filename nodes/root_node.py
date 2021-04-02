@@ -6,9 +6,20 @@ class RootNode(FunctionNode):
 
     def __init__(self, child_nodes):
         super().__init__(child_nodes)
-        self.purchasing_power = 20
+        # Approximately 20 of each
+        self.dollar_count = 20
         self.asset_count = 0
         self.max_arity = 10
+        self.last_decision = 0
+        self.starting_ev = 0
+        self.last_ev = 0
     
     def get_decision(self, frame_data):
-        return self.calculate(frame_data)
+        decision = self.calculate(frame_data)
+
+        # If the amount to trade is more than the account has, do not trade
+        if decision > self.dollar_count:
+            decision = 0
+
+        self.last_decision = decision
+        return decision

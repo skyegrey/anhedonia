@@ -41,7 +41,8 @@ class PopulationManager:
                 current_frame_data = frame_data[frame]
                 value = request[key]
                 self.logger.debug(f'{key} value: ', value)
-                current_frame_data[key] = value
+                current_frame_data[key] = float(value)
+                current_frame_data['dollar_to_asset_ratio'] = 1 / float(value)
             sleep(config['frame-time'])
 
         self.logger.debug(f'Frame Data: ', frame_data)
@@ -52,7 +53,6 @@ class PopulationManager:
         # Select a function to serve as the root of the node
         # Skip this step for now, all nodes are addition based
         NodeFunction = namedtuple('node_function', 'type, max_arity')
-        terminals = ['constant']
         node_function = NodeFunction('addition', 5)
 
         population = []
@@ -71,19 +71,26 @@ class PopulationManager:
     def sort_population(self):
         sleep(1)
         frame_data = self.get_real_time_data()
-        dollar_to_asset_ratio = 1 / frame_data[0]['price']
-        self.population.sort(key=lambda tree: self.score_tree(tree, dollar_to_asset_ratio), reverse=True)
+        self.population.sort(key=lambda tree: self.score_tree(tree, frame_data), reverse=True)
 
     @logged_class_function
     def get_best_candidate(self):
         self.sort_population()
         return self.population[0]
 
-    def score_tree(self, tree, dollar_to_asset_ratio):
-        tree_value = tree.purchasing_power + tree.asset_count * dollar_to_asset_ratio
+    @logged_class_function
+    def do_trades(self):
+        sleep(1)
+        frame_data = self.get_real_time_data()
+        for tree in self.population:
+            decision = tree.get_decision(frame_data)
+            tree.dollar_count -= decision
+            tree.asset_count += decision*frame_data[0]['dollar_to_asset_ratio']
 
-        # Calculate the gain or loss of the trade in EV
+    @logged_class_function
+    def score_tree(self, tree, frame_data):
+        asset_to_dollar_ratio = 1 / frame_data[0]['dollar_to_asset_ratio']
+        tree_value = tree.dollar_count + tree.asset_count * asset_to_dollar_ratio
+        tree.last_ev = tree_value
+
         return tree_value
-
-
-
