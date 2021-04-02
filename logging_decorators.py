@@ -1,7 +1,7 @@
 from logger import logger
 
 
-def initializer_logger(initializer):
+def logged_initializer(initializer):
 
     def wrapper(self, *args):
         self.logger.trace(f'Initializing {self.__class__.__name__}')
@@ -11,7 +11,7 @@ def initializer_logger(initializer):
     return wrapper
 
 
-def class_function_logger(function):
+def logged_class_function(function):
 
     def wrapper(self, *args):
         self.logger.trace(f'Entering function {function.__name__}')
@@ -22,7 +22,7 @@ def class_function_logger(function):
     return wrapper
 
 
-def class_logger(class_reference):
+def logged_class(class_reference):
     log = logger.get_logger(class_reference.__name__)
     class_reference.logger = log
     return class_reference
