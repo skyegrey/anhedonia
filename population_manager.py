@@ -8,12 +8,25 @@ class PopulationManager:
 
     def __init__(self, population_size):
         self.population_size = population_size
+        self.real_time_terminals = self.get_real_time_data()
         self.population = self.generate_initial_population()
+
+    def get_real_time_data(self):
+        # Get current time
+        # Setup API connection
+        import urllib.request
+        api_key = '9f0216be33fc340939350523f2e6d36f'
+        url = f"https://api.nomics.com/v1/currencies/ticker?key={api_key}&ids=BTC&interval=1d,30d&convert=EUR"
+        print(urllib.request.urlopen(url).read())
+        # Save real time keys
+        # Run for max number of open windows
+        pass
 
     def generate_initial_population(self):
         # Select a function to serve as the root of the node
         # Skip this step for now, all nodes are addition based
         NodeFunction = namedtuple('node_function', 'type, max_arity')
+        terminals = ['constant']
         node_function = NodeFunction('addition', 5)
 
         population = []
