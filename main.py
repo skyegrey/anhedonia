@@ -1,5 +1,7 @@
 from population_manager import PopulationManager
+from logger import logger
 
+log = logger.get_logger(__name__)
 config = {
     'population_size': 100
 }
