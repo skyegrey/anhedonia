@@ -59,12 +59,15 @@ class PopulationManager:
     @logged_class_function
     def generate_initial_population(self):
         config = {
-            'constants_range': (-10, 10)
+            'constants_range': (-10, 10),
+            'addition_max_arity': 5,
+            'subtraction_max_arity': 5
         }
         # Select a function to serve as the root of the node
         # Skip this step for now, all nodes are addition based
-        NodeFunction = namedtuple('node_function', 'type max_arity')
-        node_function = NodeFunction('addition', 5)
+        NodeFunction = namedtuple('node_function', 'type function min_arity, max_arity')
+        node_functions = [NodeFunction('addition', lambda nodes: sum(nodes), 2, 5),
+                          NodeFunction('subtraction', lambda nodes: nodes[0] - sum(nodes[1:]), 2, 5)]
 
         FrameKeyPair = namedtuple('FrameKeyPair', 'frame key')
 
@@ -75,9 +78,12 @@ class PopulationManager:
         population = []
         for _ in range(self.population_size):
             # Start of individual creation
+            root_function = choice(node_functions)
+
+            # Branch here
 
             # Terminal Filling
-            terminals_to_create = randint(1, node_function.max_arity)
+            terminals_to_create = randint(root_function.min_arity, root_function.max_arity)
             created_terminals = []
             for _ in range(terminals_to_create):
                 terminal_to_create = choice(terminals)
@@ -88,7 +94,7 @@ class PopulationManager:
                 elif terminal_to_create.type == 'run_time_evaluated':
                     created_terminals.append(TerminalNode('run_time_evaluated', terminal_to_create.frame_key_pair))
 
-            root = RootNode(created_terminals)
+            root = RootNode(root_function, created_terminals)
             population.append(root)
         return population
 

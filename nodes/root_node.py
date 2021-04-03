@@ -4,8 +4,8 @@ from nodes.function_node import FunctionNode
 class RootNode(FunctionNode):
     """Calculates the amount to invest or sell"""
 
-    def __init__(self, child_nodes):
-        super().__init__(child_nodes)
+    def __init__(self, function_data, child_nodes):
+        super().__init__(function_data, child_nodes)
         # Approximately 20 of each
         self.dollar_count = 20
         self.asset_count = 0

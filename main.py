@@ -5,7 +5,7 @@ from logger import logger
 log = logger.get_logger(__name__)
 config = {
     'population_size': 100,
-    'trades_before_evaluation': 10
+    'trades_before_evaluation': 1
 }
 
 population_manager = PopulationManager(config['population_size'])
