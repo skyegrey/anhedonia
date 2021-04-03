@@ -27,5 +27,10 @@ class RootNode(FunctionNode):
         if decision < -sellable_amount:
             decision = 0
 
+        # Stops small trades from happening
+        decision_threshold = 1
+        if abs(decision) < decision_threshold:
+            decision = 0
+
         self.last_decision = decision
         return decision
