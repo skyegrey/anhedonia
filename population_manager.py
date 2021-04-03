@@ -1,10 +1,18 @@
 from nodes.root_node import RootNode
 from nodes.terminal_node import TerminalNode
-from random import randint
+from random import choice, uniform, randint
 from collections import namedtuple
 from logging_decorators import logged_initializer, logged_class_function, logged_class
 from collections import defaultdict
 from time import sleep
+
+
+def score_tree(tree, frame_data):
+    asset_to_dollar_ratio = 1 / frame_data[0]['dollar_to_asset_ratio']
+    tree_value = tree.dollar_count + tree.asset_count * asset_to_dollar_ratio
+    tree.last_ev = tree_value
+
+    return tree_value
 
 
 @logged_class
@@ -50,28 +58,49 @@ class PopulationManager:
 
     @logged_class_function
     def generate_initial_population(self):
+        config = {
+            'constants_range': (-10, 10)
+        }
         # Select a function to serve as the root of the node
         # Skip this step for now, all nodes are addition based
-        NodeFunction = namedtuple('node_function', 'type, max_arity')
+        NodeFunction = namedtuple('node_function', 'type max_arity')
         node_function = NodeFunction('addition', 5)
+
+        FrameKeyPair = namedtuple('FrameKeyPair', 'frame key')
+
+        TerminalTemplate = namedtuple('TerminalTemplate', 'type frame_key_pair')
+        terminals = [TerminalTemplate('constant', None),
+                     TerminalTemplate('run_time_evaluated', FrameKeyPair(0, 'price'))]
 
         population = []
         for _ in range(self.population_size):
-            number_of_nodes = randint(1, node_function.max_arity)
-            nodes = [TerminalNode(randint(0, 10)) for _ in range(number_of_nodes)]
-            root = RootNode(nodes)
+            # Start of individual creation
+
+            # Terminal Filling
+            terminals_to_create = randint(1, node_function.max_arity)
+            created_terminals = []
+            for _ in range(terminals_to_create):
+                terminal_to_create = choice(terminals)
+                if terminal_to_create.type == 'constant':
+                    constant_value = uniform(*config['constants_range'])
+                    created_terminals.append(TerminalNode('constant', constant_value))
+
+                elif terminal_to_create.type == 'run_time_evaluated':
+                    created_terminals.append(TerminalNode('run_time_evaluated', terminal_to_create.frame_key_pair))
+
+            root = RootNode(created_terminals)
             population.append(root)
         return population
 
     @logged_class_function
     def generate_next_generation(self):
-        self.population = [RootNode([TerminalNode(5)])]
+        self.population = []
 
     @logged_class_function
     def sort_population(self):
         sleep(1)
         frame_data = self.get_real_time_data()
-        self.population.sort(key=lambda tree: self.score_tree(tree, frame_data), reverse=True)
+        self.population.sort(key=lambda tree: score_tree(tree, frame_data), reverse=True)
 
     @logged_class_function
     def get_best_candidate(self):
@@ -86,11 +115,3 @@ class PopulationManager:
             decision = tree.get_decision(frame_data)
             tree.dollar_count -= decision
             tree.asset_count += decision*frame_data[0]['dollar_to_asset_ratio']
-
-    @logged_class_function
-    def score_tree(self, tree, frame_data):
-        asset_to_dollar_ratio = 1 / frame_data[0]['dollar_to_asset_ratio']
-        tree_value = tree.dollar_count + tree.asset_count * asset_to_dollar_ratio
-        tree.last_ev = tree_value
-
-        return tree_value

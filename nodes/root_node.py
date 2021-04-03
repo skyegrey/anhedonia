@@ -11,14 +11,20 @@ class RootNode(FunctionNode):
         self.asset_count = 0
         self.max_arity = 10
         self.last_decision = 0
+        self.attempted_last_decision = 0
         self.starting_ev = 0
         self.last_ev = 0
     
     def get_decision(self, frame_data):
         decision = self.calculate(frame_data)
+        self.attempted_last_decision = decision
 
         # If the amount to trade is more than the account has, do not trade
         if decision > self.dollar_count:
+            decision = 0
+
+        sellable_amount = self.asset_count * frame_data[0]['price']
+        if decision < -sellable_amount:
             decision = 0
 
         self.last_decision = decision
