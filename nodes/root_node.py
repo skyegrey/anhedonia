@@ -7,7 +7,7 @@ class RootNode(FunctionNode):
     def __init__(self, function_data, child_nodes):
         super().__init__(function_data, child_nodes)
         # Approximately 20 of each
-        self.dollar_count = 20
+        self.dollar_count = 1000
         self.asset_count = 0
         self.max_arity = 10
         self.last_decision = 0
@@ -16,7 +16,10 @@ class RootNode(FunctionNode):
         self.last_ev = 0
     
     def get_decision(self, frame_data):
-        decision = self.calculate(frame_data)
+        root_statistics = {
+            'dollar_count': self.dollar_count
+        }
+        decision = self.calculate(frame_data, root_statistics)
         self.attempted_last_decision = decision
 
         # If the amount to trade is more than the account has, do not trade

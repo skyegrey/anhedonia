@@ -17,6 +17,12 @@ class FileLogger:
     def debug(self, message, variable):
         self.send_to_logger('DEBUG', f'{message}{str(variable)}')
 
+    def error(self, message):
+        self.send_to_logger('ERROR', f'{message}')
+
+    def fatal(self, message):
+        self.send_to_logger('FATAL', f'{message}')
+
 
 class Logger:
 

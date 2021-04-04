@@ -1,3 +1,4 @@
+from urllib.error import URLError
 from nodes.root_node import RootNode
 from nodes.terminal_node import TerminalNode
 from nodes.function_node import FunctionNode
@@ -45,7 +46,20 @@ class PopulationManager:
             # Todo: Switch to bottom tested window time
             sleep(config['frame-time'])
             self.logger.debug(f'Collecting data from frame: ', frame)
-            request_return = urllib.request.urlopen(url).read().decode()
+
+            max_api_tries = 25
+            for _ in range(max_api_tries):
+                try:
+                    request_return = urllib.request.urlopen(url).read().decode()
+                    break
+                except URLError:
+                    self.logger.error('Failed to get frame data, retrying')
+                    sleep(1)
+                    continue
+            else:
+                self.logger.fatal('API Tries maxed out, no response received')
+                raise NotImplementedError()
+
             stripped_request_return = request_return[1:-2]
             request = loads(stripped_request_return)
             for key in config['keys_to_save']:
@@ -73,13 +87,14 @@ class PopulationManager:
                           NodeFunction('subtraction', lambda nodes: nodes[0] - sum(nodes[1:]), 2, 5),
                           NodeFunction('multiplication', lambda nodes: reduce(lambda x, y: x*y, nodes), 2, 5),
                           NodeFunction('protected_division',
-                                       lambda nodes: nodes[0] / nodes[1] if nodes[1] != 0 else 1, 2, 2)
+                                       lambda nodes: reduce(lambda x, y: x/y if y != 0 else 1, nodes), 2, 5)
                           ]
 
         FrameKeyPair = namedtuple('FrameKeyPair', 'frame key')
-        TerminalTemplate = namedtuple('TerminalTemplate', 'type frame_key_pair')
+        TerminalTemplate = namedtuple('TerminalTemplate', 'type value')
         terminals = [TerminalTemplate('constant', None),
-                     TerminalTemplate('run_time_evaluated', FrameKeyPair(0, 'price'))]
+                     TerminalTemplate('run_time_evaluated', FrameKeyPair(0, 'price')),
+                     TerminalTemplate('self_evaluated', 'dollar_count')]
 
         population = []
         for specimen_count in range(self.population_size):
@@ -87,12 +102,10 @@ class PopulationManager:
             def get_terminal():
                 terminal_to_create = choice(terminals)
 
-                terminal_type_to_value = {
-                    'constant': uniform(*config['constants_range']),
-                    'run_time_evaluated': terminal_to_create.frame_key_pair
-                }
-
-                terminal_value = terminal_type_to_value[terminal_to_create.type]
+                if terminal_to_create.type == 'constant':
+                    terminal_value = uniform(*config['constants_range'])
+                else:
+                    terminal_value = terminal_to_create.value
 
                 return TerminalNode(terminal_to_create.type, terminal_value)
 
