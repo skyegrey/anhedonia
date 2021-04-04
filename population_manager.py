@@ -140,7 +140,26 @@ class PopulationManager:
 
     @logged_class_function
     def generate_next_generation(self):
-        self.population = []
+        config = {
+            'replacement': .8
+        }
+
+        self.sort_population()
+
+        # Okay here we go
+        next_population = []
+        trees_from_last_generation_count = round(config['replacement'] * self.population_size)
+
+        # For now, just take elites
+        trees_from_last_generation = self.population[:trees_from_last_generation_count]
+        next_population.extend(trees_from_last_generation)
+
+        leftover_trees = self.population_size - len(next_population)
+        # Just take more copies of elites to fill the gap
+        next_population.extend(self.population[:leftover_trees])
+
+        self.logger.debug('Trees generated for next generation: ', len(next_population))
+        self.population = next_population
 
     @logged_class_function
     def sort_population(self):
@@ -161,3 +180,11 @@ class PopulationManager:
             decision = tree.get_decision(frame_data)
             tree.dollar_count -= decision
             tree.asset_count += decision*frame_data[0]['dollar_to_asset_ratio']
+
+    @logged_class_function
+    def get_population_statistics(self):
+        self.sort_population()
+        statistics = {
+            'average_value': sum([tree.last_ev for tree in self.population]) / len(self.population)
+        }
+        return statistics
