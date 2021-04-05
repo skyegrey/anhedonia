@@ -25,7 +25,7 @@ class PopulationManager:
 
     @logged_initializer
     def __init__(self, population_size):
-        self.logger.set_level('DEBUG')
+        self.logger.set_level('ERROR')
         self.population_size = population_size
         self.real_time_terminals = self.get_real_time_data()
         self.population = self.generate_initial_population()
@@ -34,7 +34,7 @@ class PopulationManager:
     def get_real_time_data(self):
         config = {
             'keys_to_save': ['price'],
-            'frames': 5,
+            'frames': 60,
             'frame-time': 1
         }
         # Get current time
@@ -66,83 +66,84 @@ class PopulationManager:
             stripped_request_return = request_return[1:-2]
             request = loads(stripped_request_return)
             for key in config['keys_to_save']:
-                self.logger.debug(f'Collecting data for key: ', key)
+                self.logger.info(f'Collecting data for key: {key}')
                 current_frame_data = frame_data[frame]
                 value = request[key]
-                self.logger.debug(f'{key} value: ', value)
+                self.logger.info(f'{key} value: {value}')
                 current_frame_data[key] = float(value)
                 current_frame_data['dollar_to_asset_ratio'] = 1 / float(value)
 
         self.logger.debug(f'Frame Data: ', frame_data)
         return frame_data
 
+    def get_terminal(self):
+        terminal_to_create = choice(self.terminals)
+
+        if terminal_to_create.type == 'constant':
+            terminal_value = uniform(*self.config['constants_range'])
+        elif terminal_to_create.type == 'run_time_evaluated':
+            FrameKeyPair = namedtuple('FrameKeyPair', 'frame key')
+            frame = randint(0, self.config['open_frames'] - 1)
+            terminal_value = FrameKeyPair(frame, terminal_to_create.value)
+        else:
+            terminal_value = terminal_to_create.value
+
+        return TerminalNode(terminal_to_create.type, terminal_value)
+
+    def get_function_node(self, depth, max_depth):
+        function_type = choice(self.node_functions)
+        argument_count = randint(function_type.min_arity, function_type.max_arity)
+
+        if depth == max_depth:
+            function_nodes = [self.get_terminal() for _ in range(argument_count)]
+
+        else:
+            function_nodes = []
+            for _ in range(argument_count):
+                function_selection_roll = random()
+                if function_selection_roll < self.config['function_selection_chance']:
+                    function_nodes.append(self.get_function_node(depth + 1, max_depth))
+                else:
+                    function_nodes.append(self.get_terminal())
+
+        return FunctionNode(function_type, function_nodes) \
+            if depth != 0 else RootNode(function_type, function_nodes)
+
     @logged_class_function
     def generate_initial_population(self):
-        config = {
-            'constants_range': (-10, 10),
-            'addition_max_arity': 5,
-            'subtraction_max_arity': 5,
-            'function_selection_chance': .5
+        self.config = {
+            'constants_range': (-1000, 1000),
+            'addition_max_arity': 10,
+            'subtraction_max_arity': 10,
+            'function_selection_chance': .5,
+            'open_frames': 60
         }
 
         NodeFunction = namedtuple('node_function', 'type function min_arity, max_arity')
-        node_functions = [NodeFunction('addition', lambda nodes: sum(nodes), 2, 5),
-                          NodeFunction('subtraction', lambda nodes: nodes[0] - sum(nodes[1:]), 2, 5),
-                          NodeFunction('multiplication', lambda nodes: reduce(lambda x, y: x*y, nodes), 2, 5),
-                          NodeFunction('protected_division',
-                                       lambda nodes: reduce(lambda x, y: x/y if y != 0 else 1, nodes), 2, 5)
-                          ]
+        self.node_functions = [NodeFunction('addition', lambda nodes: sum(nodes), 2, 5),
+                               NodeFunction('subtraction', lambda nodes: nodes[0] - sum(nodes[1:]), 2, 5),
+                               NodeFunction('multiplication', lambda nodes: reduce(lambda x, y: x * y, nodes), 2, 5),
+                               NodeFunction('protected_division',
+                                            lambda nodes: reduce(lambda x, y: x / y if y != 0 else 1, nodes), 2, 5)
+                               ]
 
-        FrameKeyPair = namedtuple('FrameKeyPair', 'frame key')
         TerminalTemplate = namedtuple('TerminalTemplate', 'type value')
-        terminals = [TerminalTemplate('constant', None),
-                     TerminalTemplate('run_time_evaluated', FrameKeyPair(0, 'price')),
-                     TerminalTemplate('run_time_evaluated', FrameKeyPair(1, 'price')),
-                     TerminalTemplate('run_time_evaluated', FrameKeyPair(2, 'price')),
-                     TerminalTemplate('run_time_evaluated', FrameKeyPair(3, 'price')),
-                     TerminalTemplate('run_time_evaluated', FrameKeyPair(4, 'price')),
-                     TerminalTemplate('self_evaluated', 'dollar_count')]
+        self.terminals = [TerminalTemplate('constant', None),
+                          TerminalTemplate('run_time_evaluated', 'price'),
+                          TerminalTemplate('self_evaluated', 'dollar_count')
+                          ]
 
         population = []
         for specimen_count in range(self.population_size):
 
-            def get_terminal():
-                terminal_to_create = choice(terminals)
-
-                if terminal_to_create.type == 'constant':
-                    terminal_value = uniform(*config['constants_range'])
-                else:
-                    terminal_value = terminal_to_create.value
-
-                return TerminalNode(terminal_to_create.type, terminal_value)
-
-            def get_function_node(depth, max_depth):
-                function_type = choice(node_functions)
-                argument_count = randint(function_type.min_arity, function_type.max_arity)
-
-                if depth == max_depth:
-                    function_nodes = [get_terminal() for _ in range(argument_count)]
-
-                else:
-                    function_nodes = []
-                    for _ in range(argument_count):
-                        function_selection_roll = random()
-                        if function_selection_roll < config['function_selection_chance']:
-                            function_nodes.append(get_function_node(depth + 1, max_depth))
-                        else:
-                            function_nodes.append(get_terminal())
-
-                return FunctionNode(function_type, function_nodes) \
-                    if depth != 0 else RootNode(function_type, function_nodes)
-
-            if specimen_count < 50:
-                population.append(get_function_node(0, 1))
-            elif specimen_count < 75:
-                population.append(get_function_node(0, 2))
-            elif specimen_count < 90:
-                population.append(get_function_node(0, 3))
+            if specimen_count < 250:
+                population.append(self.get_function_node(0, 1))
+            elif specimen_count < 325:
+                population.append(self.get_function_node(0, 2))
+            elif specimen_count < 387:
+                population.append(self.get_function_node(0, 3))
             else:
-                population.append(get_function_node(0, 4))
+                population.append(self.get_function_node(0, 4))
         return population
 
     @logged_class_function
@@ -150,6 +151,7 @@ class PopulationManager:
         config = {
             'replacement': .7,
             'recombination': .2,
+            'mutation': .1
         }
 
         self.sort_population()
@@ -169,7 +171,7 @@ class PopulationManager:
             random_int_range = (self.population_size / 2) * (self.population_size + 1)
             random_choice = randint(0, random_int_range)
             b = 2 * self.population_size + 1
-            random_index = math.floor((-b + math.sqrt(b**2 - 8*random_choice))/(-2))
+            random_index = math.floor((-b + math.sqrt(b ** 2 - 8 * random_choice)) / (-2))
             return random_index
 
         def get_all_function_nodes(tree, nodes=None):
@@ -219,11 +221,22 @@ class PopulationManager:
             recombined_tree = parent_1
             next_population.append(recombined_tree)
 
+        trees_to_mutate = round(self.population_size * config['mutation'])
+        for _ in range(trees_to_mutate):
+            tree_to_mutate = deepcopy(self.population[get_weighted_random_index()])
+            parent_mutation_node = choice(get_all_function_nodes(tree_to_mutate))
+            mutation_index = randint(0, len(parent_mutation_node.child_nodes) - 1)
+            new_node = self.get_function_node(3, 4)
+            parent_mutation_node.child_nodes[mutation_index] = new_node
+            next_population.append(tree_to_mutate)
+
         leftover_trees = self.population_size - len(next_population)
+        self.logger.debug('Leftover Trees: ', leftover_trees)
         # Just take more copies of elites to fill the gap
         next_population.extend(self.population[:leftover_trees])
 
         self.logger.debug('Trees generated for next generation: ', len(next_population))
+        [tree.reset_cash() for tree in next_population]
         self.population = next_population
 
     @logged_class_function
@@ -244,7 +257,7 @@ class PopulationManager:
         for tree in self.population:
             decision = tree.get_decision(frame_data)
             tree.dollar_count -= decision
-            tree.asset_count += decision*frame_data[0]['dollar_to_asset_ratio']
+            tree.asset_count += decision * frame_data[0]['dollar_to_asset_ratio']
 
     @logged_class_function
     def get_population_statistics(self):
