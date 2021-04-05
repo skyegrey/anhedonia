@@ -1,3 +1,4 @@
+import math
 from urllib.error import URLError
 from nodes.root_node import RootNode
 from nodes.terminal_node import TerminalNode
@@ -8,6 +9,7 @@ from logging_decorators import logged_initializer, logged_class_function, logged
 from collections import defaultdict
 from time import sleep
 from functools import reduce
+from copy import deepcopy
 
 
 def score_tree(tree, frame_data):
@@ -23,6 +25,7 @@ class PopulationManager:
 
     @logged_initializer
     def __init__(self, population_size):
+        self.logger.set_level('DEBUG')
         self.population_size = population_size
         self.real_time_terminals = self.get_real_time_data()
         self.population = self.generate_initial_population()
@@ -31,7 +34,7 @@ class PopulationManager:
     def get_real_time_data(self):
         config = {
             'keys_to_save': ['price'],
-            'frames': 1,
+            'frames': 5,
             'frame-time': 1
         }
         # Get current time
@@ -94,6 +97,10 @@ class PopulationManager:
         TerminalTemplate = namedtuple('TerminalTemplate', 'type value')
         terminals = [TerminalTemplate('constant', None),
                      TerminalTemplate('run_time_evaluated', FrameKeyPair(0, 'price')),
+                     TerminalTemplate('run_time_evaluated', FrameKeyPair(1, 'price')),
+                     TerminalTemplate('run_time_evaluated', FrameKeyPair(2, 'price')),
+                     TerminalTemplate('run_time_evaluated', FrameKeyPair(3, 'price')),
+                     TerminalTemplate('run_time_evaluated', FrameKeyPair(4, 'price')),
                      TerminalTemplate('self_evaluated', 'dollar_count')]
 
         population = []
@@ -141,7 +148,8 @@ class PopulationManager:
     @logged_class_function
     def generate_next_generation(self):
         config = {
-            'replacement': .8
+            'replacement': .7,
+            'recombination': .2,
         }
 
         self.sort_population()
@@ -153,6 +161,63 @@ class PopulationManager:
         # For now, just take elites
         trees_from_last_generation = self.population[:trees_from_last_generation_count]
         next_population.extend(trees_from_last_generation)
+
+        # Recombination
+        trees_to_recombine = round(config['recombination'] * self.population_size)
+
+        def get_weighted_random_index():
+            random_int_range = (self.population_size / 2) * (self.population_size + 1)
+            random_choice = randint(0, random_int_range)
+            b = 2 * self.population_size + 1
+            random_index = math.floor((-b + math.sqrt(b**2 - 8*random_choice))/(-2))
+            return random_index
+
+        def get_all_function_nodes(tree, nodes=None):
+            if type(tree) == TerminalNode:
+                return
+            elif nodes is None:
+                nodes = [tree]
+
+            for node in tree.child_nodes:
+                if type(node) == FunctionNode:
+                    nodes.append(node)
+                    get_all_function_nodes(node, nodes)
+
+            return nodes
+
+        def get_all_nodes(tree, nodes=None):
+            if nodes is None:
+                nodes = [tree]
+
+            for node in tree.child_nodes:
+                if type(node) == FunctionNode:
+                    nodes.append(node)
+                    get_all_nodes(node, nodes)
+                elif type(node) == TerminalNode:
+                    nodes.append(node)
+
+            return nodes
+
+        for _ in range(trees_to_recombine):
+            # Select parents
+            parent_1 = deepcopy(self.population[get_weighted_random_index()])
+            parent_2 = deepcopy(self.population[get_weighted_random_index()])
+
+            # Get all nodes
+            parent_1_function_nodes = get_all_function_nodes(parent_1)
+            parent_2_nodes = get_all_nodes(parent_2)
+
+            # Select recombination point from parent 1
+            parent_1_recombination_point = choice(parent_1_function_nodes)
+            parent_2_recombination_point = choice(parent_2_nodes)
+
+            # Combine trees
+            replacement_index = randint(0, len(parent_1_recombination_point.child_nodes) - 1)
+            parent_1_recombination_point.child_nodes[replacement_index] = parent_2_recombination_point
+
+            # Add to list of trees
+            recombined_tree = parent_1
+            next_population.append(recombined_tree)
 
         leftover_trees = self.population_size - len(next_population)
         # Just take more copies of elites to fill the gap

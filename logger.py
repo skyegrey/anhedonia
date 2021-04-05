@@ -4,21 +4,35 @@ import datetime
 class FileLogger:
     def __init__(self, filename):
         self.filename = filename
+        self.level = 0
 
     def send_to_logger(self, level, message):
         logger.log(level, self.filename, message)
 
+    def set_level(self, level):
+        level_to_int = {
+            'TRACE': 0,
+            'INFO': 1,
+            'DEBUG': 2,
+            'ERROR': 3
+        }
+        self.level = level_to_int[level]
+
     def trace(self, message):
-        self.send_to_logger('TRACE', message)
+        if self.level <= 0:
+            self.send_to_logger('TRACE', message)
 
     def info(self, message):
-        self.send_to_logger('INFO', message)
+        if self.level <= 1:
+            self.send_to_logger('INFO', message)
 
     def debug(self, message, variable):
-        self.send_to_logger('DEBUG', f'{message}{str(variable)}')
+        if self.level <= 2:
+            self.send_to_logger('DEBUG', f'{message}{str(variable)}')
 
     def error(self, message):
-        self.send_to_logger('ERROR', f'{message}')
+        if self.level <= 3:
+            self.send_to_logger('ERROR', f'{message}')
 
     def fatal(self, message):
         self.send_to_logger('FATAL', f'{message}')
