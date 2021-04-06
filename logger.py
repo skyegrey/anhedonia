@@ -28,7 +28,9 @@ class FileLogger:
 
     def debug(self, message, variable=None):
         if self.level <= 2:
-            self.send_to_logger('DEBUG', f'{message}{str(variable)}') if variable is not None else \
+            if variable:
+                self.send_to_logger('DEBUG', message + f'{variable}')
+            else:
                 self.send_to_logger('DEBUG', message)
 
     def error(self, message):
@@ -57,9 +59,10 @@ class Logger:
         time = datetime.datetime.now()
         hour, minute, second = time.hour, time.minute, time.second
         log_line = f'[{hour}:{minute}:{(2 -  len(str(second)))* "0" + str(second)}][{level}][{filename}]{message}'
-        self.file.write(log_line)
+        self.file.write(log_line + '\n')
         if self.do_print:
             print(log_line)
+
 
 
 logger = Logger('logs')

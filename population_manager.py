@@ -6,11 +6,11 @@ from nodes.function_node import FunctionNode
 from random import choice, uniform, randint, random
 from collections import namedtuple
 from logging_decorators import logged_initializer, logged_class_function, logged_class
-from collections import defaultdict
 from time import sleep
-from functools import reduce
 from copy import deepcopy
 from datetime import datetime
+import urllib.request
+from json import loads
 
 
 def score_tree(tree, frame_data):
@@ -25,9 +25,10 @@ def score_tree(tree, frame_data):
 class PopulationManager:
 
     @logged_initializer
-    def __init__(self, population_size):
-        self.logger.set_level('TRACE')
-        self.population_size = population_size
+    def __init__(self, config):
+        self.config = config
+        self.logger.set_level(self.config['log_level'])
+        self.population_size = self.config['population_size']
         self.population = self.generate_initial_population()
         self.last_access_time = None
         self.logger.debug('Start time', self.last_access_time)
@@ -35,14 +36,8 @@ class PopulationManager:
 
     @logged_class_function
     def get_real_time_data(self):
-        config = {
-            'keys_to_save': ['price'],
-            'frames': 10,
-            'frame-time': 1
-        }
-
         if self.last_access_time is None:
-            frames_to_collect = config['frames']
+            frames_to_collect = self.config['frames']
             frames = []
 
         else:
@@ -52,15 +47,12 @@ class PopulationManager:
         self.logger.debug(f'Frames to collect {frames_to_collect}')
         # Get current time
         # Setup API connection
-        import urllib.request
-        from json import loads
-        api_key = '9f0216be33fc340939350523f2e6d36f'
-        url = f"https://api.nomics.com/v1/currencies/ticker?key={api_key}&ids=BTC&interval=1d,30d&convert=EUR"
+        url = f"https://api.nomics.com/v1/currencies/ticker?key={self.config['api_key']}" \
+              f"&ids=BTC&interval=1d,30d&convert=EUR"
 
         for frame in range(frames_to_collect):
-            # Todo: Switch to bottom tested window time
-            sleep(config['frame-time'])
-            self.logger.debug(f'Collecting data from frame: ', frame)
+            self.logger.debug(f'Collecting data from frame {frame}')
+            sleep(self.config['seconds-per-frame'])
 
             max_api_tries = 25
             for _ in range(max_api_tries):
@@ -79,7 +71,7 @@ class PopulationManager:
             request = loads(stripped_request_return)
 
             frame_data = {}
-            for key in config['keys_to_save']:
+            for key in self.config['keys_to_save']:
                 self.logger.info(f'Collecting data for key: {key}')
                 value = request[key]
                 self.logger.info(f'{key} value: {value}')
@@ -92,13 +84,13 @@ class PopulationManager:
         return frames
 
     def get_terminal(self):
-        terminal_to_create = choice(self.terminals)
+        terminal_to_create = choice(self.config['terminals'])
 
         if terminal_to_create.type == 'constant':
             terminal_value = uniform(*self.config['constants_range'])
         elif terminal_to_create.type == 'run_time_evaluated':
             FrameKeyPair = namedtuple('FrameKeyPair', 'frame key')
-            frame = randint(0, self.config['open_frames'] - 1)
+            frame = randint(0, self.config['frames'] - 1)
             terminal_value = FrameKeyPair(frame, terminal_to_create.value)
         else:
             terminal_value = terminal_to_create.value
@@ -106,7 +98,7 @@ class PopulationManager:
         return TerminalNode(terminal_to_create.type, terminal_value)
 
     def get_function_node(self, depth, max_depth):
-        function_type = choice(self.node_functions)
+        function_type = choice(self.config['node_functions'])
         argument_count = randint(function_type.min_arity, function_type.max_arity)
 
         if depth == max_depth:
@@ -126,28 +118,6 @@ class PopulationManager:
 
     @logged_class_function
     def generate_initial_population(self):
-        self.config = {
-            'constants_range': (-1000, 1000),
-            'addition_max_arity': 10,
-            'subtraction_max_arity': 10,
-            'function_selection_chance': .5,
-            'open_frames': 60
-        }
-
-        NodeFunction = namedtuple('node_function', 'type function min_arity, max_arity')
-        self.node_functions = [NodeFunction('addition', lambda nodes: sum(nodes), 2, 5),
-                               NodeFunction('subtraction', lambda nodes: nodes[0] - sum(nodes[1:]), 2, 5),
-                               NodeFunction('multiplication', lambda nodes: reduce(lambda x, y: x * y, nodes), 2, 5),
-                               NodeFunction('protected_division',
-                                            lambda nodes: reduce(lambda x, y: x / y if y != 0 else 1, nodes), 2, 5)
-                               ]
-
-        TerminalTemplate = namedtuple('TerminalTemplate', 'type value')
-        self.terminals = [TerminalTemplate('constant', None),
-                          TerminalTemplate('run_time_evaluated', 'price'),
-                          TerminalTemplate('self_evaluated', 'dollar_count')
-                          ]
-
         population = []
         for specimen_count in range(self.population_size):
 
@@ -163,24 +133,18 @@ class PopulationManager:
 
     @logged_class_function
     def generate_next_generation(self):
-        config = {
-            'replacement': .7,
-            'recombination': .2,
-            'mutation': .1
-        }
-
         self.sort_population()
 
         # Okay here we go
         next_population = []
-        trees_from_last_generation_count = round(config['replacement'] * self.population_size)
+        trees_from_last_generation_count = round(self.config['replacement'] * self.population_size)
 
         # For now, just take elites
         trees_from_last_generation = self.population[:trees_from_last_generation_count]
         next_population.extend(trees_from_last_generation)
 
         # Recombination
-        trees_to_recombine = round(config['recombination'] * self.population_size)
+        trees_to_recombine = round(self.config['recombination'] * self.population_size)
 
         def get_weighted_random_index():
             random_int_range = (self.population_size / 2) * (self.population_size + 1)
@@ -236,7 +200,7 @@ class PopulationManager:
             recombined_tree = parent_1
             next_population.append(recombined_tree)
 
-        trees_to_mutate = round(self.population_size * config['mutation'])
+        trees_to_mutate = round(self.population_size * self.config['mutation'])
         for _ in range(trees_to_mutate):
             tree_to_mutate = deepcopy(self.population[get_weighted_random_index()])
             parent_mutation_node = choice(get_all_function_nodes(tree_to_mutate))
