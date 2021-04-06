@@ -10,6 +10,7 @@ from collections import defaultdict
 from time import sleep
 from functools import reduce
 from copy import deepcopy
+from datetime import datetime
 
 
 def score_tree(tree, frame_data):
@@ -25,18 +26,30 @@ class PopulationManager:
 
     @logged_initializer
     def __init__(self, population_size):
-        self.logger.set_level('ERROR')
+        self.logger.set_level('TRACE')
         self.population_size = population_size
-        self.real_time_terminals = self.get_real_time_data()
         self.population = self.generate_initial_population()
+        self.last_access_time = None
+        self.logger.debug('Start time', self.last_access_time)
+        self.data_window = self.get_real_time_data()
 
     @logged_class_function
     def get_real_time_data(self):
         config = {
             'keys_to_save': ['price'],
-            'frames': 60,
+            'frames': 10,
             'frame-time': 1
         }
+
+        if self.last_access_time is None:
+            frames_to_collect = config['frames']
+            frames = []
+
+        else:
+            frames_to_collect = (datetime.now() - self.last_access_time).seconds
+            frames = self.data_window[frames_to_collect:]
+
+        self.logger.debug(f'Frames to collect {frames_to_collect}')
         # Get current time
         # Setup API connection
         import urllib.request
@@ -44,8 +57,7 @@ class PopulationManager:
         api_key = '9f0216be33fc340939350523f2e6d36f'
         url = f"https://api.nomics.com/v1/currencies/ticker?key={api_key}&ids=BTC&interval=1d,30d&convert=EUR"
 
-        frame_data = defaultdict(dict)
-        for frame in range(config['frames']):
+        for frame in range(frames_to_collect):
             # Todo: Switch to bottom tested window time
             sleep(config['frame-time'])
             self.logger.debug(f'Collecting data from frame: ', frame)
@@ -65,16 +77,19 @@ class PopulationManager:
 
             stripped_request_return = request_return[1:-2]
             request = loads(stripped_request_return)
+
+            frame_data = {}
             for key in config['keys_to_save']:
                 self.logger.info(f'Collecting data for key: {key}')
-                current_frame_data = frame_data[frame]
                 value = request[key]
                 self.logger.info(f'{key} value: {value}')
-                current_frame_data[key] = float(value)
-                current_frame_data['dollar_to_asset_ratio'] = 1 / float(value)
+                frame_data[key] = float(value)
+                frame_data['dollar_to_asset_ratio'] = 1 / float(value)
+                frames.append(frame_data)
 
-        self.logger.debug(f'Frame Data: ', frame_data)
-        return frame_data
+        self.logger.debug(f'Frame Data: ', frames)
+        self.last_access_time = datetime.now()
+        return frames
 
     def get_terminal(self):
         terminal_to_create = choice(self.terminals)

@@ -26,9 +26,10 @@ class FileLogger:
         if self.level <= 1:
             self.send_to_logger('INFO', message)
 
-    def debug(self, message, variable):
+    def debug(self, message, variable=None):
         if self.level <= 2:
-            self.send_to_logger('DEBUG', f'{message}{str(variable)}')
+            self.send_to_logger('DEBUG', f'{message}{str(variable)}') if variable is not None else \
+                self.send_to_logger('DEBUG', message)
 
     def error(self, message):
         if self.level <= 3:
