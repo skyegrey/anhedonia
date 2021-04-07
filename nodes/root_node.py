@@ -12,16 +12,16 @@ class RootNode(FunctionNode):
         self.max_arity = 10
         self.last_decision = 0
         self.attempted_last_decision = 0
-        self.starting_ev = 0
-        self.last_ev = 0
+        self.starting_ev = 1000
+        self.last_ev = 1000
 
     def reset_cash(self):
         self.dollar_count = 1000
         self.asset_count = 0
         self.last_decision = 0
         self.attempted_last_decision = 0
-        self.starting_ev = 0
-        self.last_ev = 0
+        self.starting_ev = 1000
+        self.last_ev = 1000
     
     def get_decision(self, frame_data):
         root_statistics = {

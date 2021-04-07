@@ -42,7 +42,11 @@ class PopulationManager:
 
         else:
             frames_to_collect = (datetime.now() - self.last_access_time).seconds
-            frames = self.data_window[frames_to_collect:]
+            if frames_to_collect > self.config['frames']:
+                frames_to_collect = self.config['frames']
+                frames = []
+            else:
+                frames = self.data_window[frames_to_collect:]
 
         self.logger.debug(f'Frames to collect {frames_to_collect}')
         # Get current time
@@ -52,14 +56,14 @@ class PopulationManager:
 
         for frame in range(frames_to_collect):
             self.logger.debug(f'Collecting data from frame {frame}')
-            sleep(self.config['seconds-per-frame'])
+            api_call_start_time = datetime.now()
 
             max_api_tries = 25
             for _ in range(max_api_tries):
                 try:
-                    request_return = urllib.request.urlopen(url).read().decode()
+                    request_return = urllib.request.urlopen(url, timeout=10).read().decode()
                     break
-                except URLError:
+                except:
                     self.logger.error('Failed to get frame data, retrying')
                     sleep(1)
                     continue
@@ -78,8 +82,12 @@ class PopulationManager:
                 frame_data[key] = float(value)
                 frame_data['dollar_to_asset_ratio'] = 1 / float(value)
                 frames.append(frame_data)
+            microseconds_elapsed = (datetime.now() - api_call_start_time).microseconds
+            seconds_to_sleep = self.config['seconds-per-frame'] - microseconds_elapsed / 1000000
+            if seconds_to_sleep > 0:
+                sleep(seconds_to_sleep)
 
-        self.logger.debug(f'Frame Data: ', frames)
+        self.logger.info(f'Frame Data: {frames}')
         self.last_access_time = datetime.now()
         return frames
 
@@ -220,7 +228,6 @@ class PopulationManager:
 
     @logged_class_function
     def sort_population(self):
-        sleep(1)
         frame_data = self.get_real_time_data()
         self.population.sort(key=lambda tree: score_tree(tree, frame_data), reverse=True)
 
@@ -231,7 +238,6 @@ class PopulationManager:
 
     @logged_class_function
     def do_trades(self):
-        sleep(1)
         frame_data = self.get_real_time_data()
         for tree in self.population:
             decision = tree.get_decision(frame_data)
@@ -240,8 +246,11 @@ class PopulationManager:
 
     @logged_class_function
     def get_population_statistics(self):
-        self.sort_population()
         statistics = {
-            'average_value': sum([tree.last_ev for tree in self.population]) / len(self.population)
+            'average_value': sum([score_tree(tree, self.data_window) for tree in self.population]) / len(self.population),
+            'values': [(index, tree.last_ev) for index, tree in enumerate(self.population)],
+            'cash_on_hand': [(index, tree.dollar_count) for index, tree in enumerate(self.population)],
+            'asset_on_hand': [(index, tree.asset_count) for index, tree in enumerate(self.population)],
+            'current_btc_price': self.data_window[-1]['price']
         }
         return statistics

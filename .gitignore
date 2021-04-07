@@ -3,3 +3,8 @@
 .DS_Store
 .idea
 logs
+run_stats
+ec2-instance.pem
+3.8-conda-anhedonia
+3.8-m1-anhedonia
+
