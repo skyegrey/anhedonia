@@ -38,15 +38,15 @@ class PopulationManager:
     def get_real_time_data(self):
         if self.last_access_time is None:
             frames_to_collect = self.config['frames']
-            frames = []
+            previous_frames = []
 
         else:
             frames_to_collect = (datetime.now() - self.last_access_time).seconds
             if frames_to_collect > self.config['frames']:
                 frames_to_collect = self.config['frames']
-                frames = []
+                previous_frames = []
             else:
-                frames = self.data_window[frames_to_collect:]
+                previous_frames = self.data_window[frames_to_collect:]
 
         self.logger.debug(f'Frames to collect {frames_to_collect}')
         # Get current time
@@ -54,6 +54,7 @@ class PopulationManager:
         url = f"https://api.nomics.com/v1/currencies/ticker?key={self.config['api_key']}" \
               f"&ids=BTC&interval=1d,30d&convert=EUR"
 
+        collected_frames = []
         for frame in range(frames_to_collect):
             self.logger.debug(f'Collecting data from frame {frame}')
             api_call_start_time = datetime.now()
@@ -78,18 +79,20 @@ class PopulationManager:
             for key in self.config['keys_to_save']:
                 self.logger.info(f'Collecting data for key: {key}')
                 value = request[key]
-                self.logger.info(f'{key} value: {value}')
+                self.logger.debug(f'{key} value: {value}')
                 frame_data[key] = float(value)
                 frame_data['dollar_to_asset_ratio'] = 1 / float(value)
-                frames.append(frame_data)
+                collected_frames.append(frame_data)
             microseconds_elapsed = (datetime.now() - api_call_start_time).microseconds
             seconds_to_sleep = self.config['seconds-per-frame'] - microseconds_elapsed / 1000000
             if seconds_to_sleep > 0:
                 sleep(seconds_to_sleep)
 
-        self.logger.info(f'Frame Data: {frames}')
+        collected_frames.extend(previous_frames)
+        # self.logger.info(f'Frame Data: {collected_frames}')
+        # self.logger.debug(f'Frames collected: {len(collected_frames)}')
         self.last_access_time = datetime.now()
-        return frames
+        return collected_frames
 
     def get_terminal(self):
         terminal_to_create = choice(self.config['terminals'])
