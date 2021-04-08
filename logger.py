@@ -64,5 +64,4 @@ class Logger:
             print(log_line)
 
 
-
 logger = Logger('logs')

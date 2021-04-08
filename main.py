@@ -55,23 +55,6 @@ population_config = {
     'mutation': .1
 }
 
-
-def graph_over_time(title, trade, epoch_data):
-    plt.ion()
-    plt.show()
-    plt.title(title)
-    for tree_label_pair in epoch_data:
-        title_to_trade[title][tree_label_pair[0]].append(tree_label_pair[1])
-
-    x_axis = [_ for _ in range(trade + 1)]
-
-    for tree_label_pair in epoch_data:
-        y_axis = title_to_trade[title][tree_label_pair[0]]
-        plt.plot(x_axis, y_axis)
-    
-    plt.savefig(f'graphs/latest/Epoch-{epoch}.png')
-
-
 log.info('Generating initial population')
 os.mkdir(f'run_stats/run_{config["run_id"]}')
 population_manager = PopulationManager(population_config)
