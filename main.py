@@ -11,9 +11,9 @@ import os
 
 log = logger.get_logger(__name__)
 config = {
-    'run_id': 'config-4',
-    'seconds_before_evaluation': 10,
-    'epochs': 100
+    'run_id': 'ec2-1-hour-7',
+    'seconds_before_evaluation': 3600,
+    'epochs': 300
 }
 
 NodeFunction = namedtuple('node_function', 'type function min_arity, max_arity')
@@ -24,7 +24,7 @@ population_config = {
 
     # Hyper parameters
     'population_size': 500,
-    'frames': 10,
+    'frames': 3600,
 
     # API Call
     'keys_to_save': ['price', 'market_cap'],
