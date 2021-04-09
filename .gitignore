@@ -2,9 +2,13 @@
 ../.DS_Store
 .DS_Store
 .idea
-logs
-run_stats
+logs/
+run_stats/
 ec2-instance.pem
+ec2-instance-random.pem
 3.8-conda-anhedonia
 3.8-m1-anhedonia
+visualization.py
+download_data_from_ec2.py
+/run_graphs
 
