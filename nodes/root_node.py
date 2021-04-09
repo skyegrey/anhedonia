@@ -25,7 +25,9 @@ class RootNode(FunctionNode):
     
     def get_decision(self, frame_data):
         root_statistics = {
-            'dollar_count': self.dollar_count
+            'dollar_count': self.dollar_count,
+            'asset_count': self.asset_count,
+            'last_ev': self.last_ev
         }
         decision = self.calculate(frame_data, root_statistics)
         self.attempted_last_decision = decision

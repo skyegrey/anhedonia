@@ -11,8 +11,8 @@ import os
 
 log = logger.get_logger(__name__)
 config = {
-    'run_id': 'debug_1',
-    'seconds_before_evaluation': 20,
+    'run_id': 'config-4',
+    'seconds_before_evaluation': 10,
     'epochs': 100
 }
 
@@ -24,10 +24,10 @@ population_config = {
 
     # Hyper parameters
     'population_size': 500,
-    'frames': 20,
+    'frames': 10,
 
     # API Call
-    'keys_to_save': ['price'],
+    'keys_to_save': ['price', 'market_cap'],
     'seconds-per-frame': 1,
     'api_key': '9f0216be33fc340939350523f2e6d36f',
 
@@ -36,17 +36,22 @@ population_config = {
     'function_selection_chance': .5,
 
     # Function Set
-    'node_functions': [NodeFunction('addition', lambda nodes: sum(nodes), 2, 5),
-                       NodeFunction('subtraction', lambda nodes: nodes[0] - sum(nodes[1:]), 2, 5),
-                       NodeFunction('multiplication', lambda nodes: reduce(lambda x, y: x * y, nodes), 2, 5),
+    'node_functions': [NodeFunction('addition', lambda nodes: sum(nodes), 2, 2),
+                       NodeFunction('subtraction', lambda nodes: nodes[0] - sum(nodes[1:]), 2, 2),
+                       NodeFunction('multiplication', lambda nodes: reduce(lambda x, y: x * y, nodes), 2, 2),
                        NodeFunction('protected_division',
-                                    lambda nodes: reduce(lambda x, y: x / y if y != 0 else 1, nodes), 2, 5)],
+                                    lambda nodes: reduce(lambda x, y: x / y if y != 0 else 1, nodes), 2, 2),
+                       NodeFunction('max', lambda nodes: max(nodes), 2, 2),
+                       NodeFunction('min', lambda nodes: min(nodes), 2, 2)],
 
     # Terminal Set
     'constants_range': (-1000, 1000),
     'terminals': [TerminalTemplate('constant', None),
                   TerminalTemplate('run_time_evaluated', 'price'),
-                  TerminalTemplate('self_evaluated', 'dollar_count')
+                  TerminalTemplate('run_time_evaluated', 'market_cap'),
+                  TerminalTemplate('self_evaluated', 'dollar_count'),
+                  TerminalTemplate('self_evaluated', 'asset_count'),
+                  TerminalTemplate('self_evaluated', 'last_ev')
                   ],
 
     # Next generation operation odds
