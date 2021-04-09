@@ -69,9 +69,8 @@ for epoch in range(config['epochs']):
     title_to_trade = defaultdict(lambda: defaultdict(list))
     time_elapsed = 0
     while time_elapsed < config['seconds_before_evaluation']:
-        log.info(f'Trade window time remaining {config["seconds_before_evaluation"] - time_elapsed}')
+        log.info(f'Trading, time left: {config["seconds_before_evaluation"] - time_elapsed}')
         trade_start_time = datetime.now()
-        log.debug(f'Doing trades')
         population_manager.do_trades()
         stats = population_manager.get_population_statistics()
         log.info(f'Saving stats')
@@ -81,7 +80,7 @@ for epoch in range(config['epochs']):
 
         sleep(1)
         time_elapsed += (datetime.now() - trade_start_time).seconds
-        log.info(f'Time Elapsed: {time_elapsed}')
+        log.info(f'Epoch_{epoch}: Time Elapsed: {time_elapsed}')
 
     best_candidate = population_manager.get_best_candidate()
     log.debug(f'Best Candidate Account Value: {best_candidate.last_ev}')

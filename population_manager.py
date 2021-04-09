@@ -77,9 +77,9 @@ class PopulationManager:
 
             frame_data = {}
             for key in self.config['keys_to_save']:
-                self.logger.info(f'Collecting data for key: {key}')
+                # self.logger.info(f'Collecting data for key: {key}')
                 value = request[key]
-                self.logger.debug(f'{key} value: {value}')
+                # self.logger.debug(f'{key} value: {value}')
                 frame_data[key] = float(value)
                 frame_data['dollar_to_asset_ratio'] = 1 / float(value)
                 collected_frames.append(frame_data)
