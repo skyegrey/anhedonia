@@ -241,11 +241,11 @@ class PopulationManager:
 
     @logged_class_function
     def do_trades(self):
-        frame_data = self.get_real_time_data()
+        self.data_window = self.get_real_time_data()
         for tree in self.population:
-            decision = tree.get_decision(frame_data)
+            decision = tree.get_decision(self.data_window)
             tree.dollar_count -= decision
-            tree.asset_count += decision * frame_data[0]['dollar_to_asset_ratio']
+            tree.asset_count += decision * self.data_window[0]['dollar_to_asset_ratio']
 
     @logged_class_function
     def get_population_statistics(self):
@@ -254,6 +254,6 @@ class PopulationManager:
             'values': [(index, tree.last_ev) for index, tree in enumerate(self.population)],
             'cash_on_hand': [(index, tree.dollar_count) for index, tree in enumerate(self.population)],
             'asset_on_hand': [(index, tree.asset_count) for index, tree in enumerate(self.population)],
-            'current_btc_price': self.data_window[-1]['price']
+            'current_btc_price': self.data_window[0]['price']
         }
         return statistics

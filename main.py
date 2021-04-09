@@ -78,12 +78,12 @@ for epoch in range(config['epochs']):
         time_elapsed += (datetime.now() - trade_start_time).seconds
         log.info(f'Time Elapsed: {time_elapsed}')
 
-        best_candidate = population_manager.get_best_candidate()
-        log.debug(f'Best Candidate Account Value: {best_candidate.last_ev}')
-        log.debug(f'Best Candidate Cash on hand: {best_candidate.dollar_count}')
-        log.debug(f'Best Candidate Asset on hand: {best_candidate.asset_count}')
-        log.debug(f'Best Candidate last decision: {best_candidate.last_decision}')
-        log.debug(f'Best Candidate attempted decision: {best_candidate.attempted_last_decision}')
+    best_candidate = population_manager.get_best_candidate()
+    log.debug(f'Best Candidate Account Value: {best_candidate.last_ev}')
+    log.debug(f'Best Candidate Cash on hand: {best_candidate.dollar_count}')
+    log.debug(f'Best Candidate Asset on hand: {best_candidate.asset_count}')
+    log.debug(f'Best Candidate last decision: {best_candidate.last_decision}')
+    log.debug(f'Best Candidate attempted decision: {best_candidate.attempted_last_decision}')
 
     log.debug('Generation average EV: ', population_manager.get_population_statistics()['average_value'])
     log.info('Generating next generation of trees')
