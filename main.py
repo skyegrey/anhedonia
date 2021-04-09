@@ -11,7 +11,7 @@ import os
 
 log = logger.get_logger(__name__)
 config = {
-    'run_id': 'ec2-1-hour-7',
+    'run_id': 'ec2-1-hour-8',
     'seconds_before_evaluation': 3600,
     'epochs': 300
 }
