@@ -1,13 +1,18 @@
 from pickle import load
 from download_data_from_ec2 import download_data_from_ec2
 import shutil
-import os
 from collections import defaultdict
 import matplotlib.pyplot as plt
+import os
+
+
+def visualize_epochs(run_id, epochs):
+    for epoch in epochs:
+        visualize_epoch(run_id, epoch)
 
 
 def visualize_epoch(run_id, epoch):
-    # download_data_from_ec2(run_id, epoch)
+    download_data_from_ec2(run_id, epoch)
 
     # Unpack local
     epoch_results_path = f"run_stats/{run_id}/epoch_{epoch}_stats.zip"
@@ -53,7 +58,11 @@ def visualize_epoch(run_id, epoch):
         axis[0, 1].set_title('BTC Price')
         axis[1, 1].plot(x_axis, id_to_cash_on_hand[tree_id])
         axis[1, 1].set_title('Cash on Hand')
-    plt.show()
+
+    graph_save_directory = f"run_graphs/{run_id}"
+    if not os.path.isdir(graph_save_directory):
+        os.makedirs(graph_save_directory)
+    plt.savefig(f"{graph_save_directory}/epoch_{epoch}_graph.png")
 
 
-visualize_epoch(run_id='local-viz-compression-4', epoch=3)
+visualize_epochs(run_id='ec2-viz-unpacking', epochs=[0, 1, 2, 3, 4])
