@@ -1,5 +1,4 @@
 import math
-from urllib.error import URLError
 from nodes.root_node import RootNode
 from nodes.terminal_node import TerminalNode
 from nodes.function_node import FunctionNode
@@ -77,9 +76,7 @@ class PopulationManager:
 
             frame_data = {}
             for key in self.config['keys_to_save']:
-                # self.logger.info(f'Collecting data for key: {key}')
                 value = request[key]
-                # self.logger.debug(f'{key} value: {value}')
                 frame_data[key] = float(value)
                 frame_data['dollar_to_asset_ratio'] = 1 / float(value)
                 collected_frames.append(frame_data)
@@ -89,8 +86,6 @@ class PopulationManager:
                 sleep(seconds_to_sleep)
 
         collected_frames.extend(previous_frames)
-        # self.logger.info(f'Frame Data: {collected_frames}')
-        # self.logger.debug(f'Frames collected: {len(collected_frames)}')
         self.last_access_time = datetime.now()
         return collected_frames
 
@@ -221,11 +216,9 @@ class PopulationManager:
             next_population.append(tree_to_mutate)
 
         leftover_trees = self.population_size - len(next_population)
-        self.logger.debug('Leftover Trees: ', leftover_trees)
         # Just take more copies of elites to fill the gap
         next_population.extend(self.population[:leftover_trees])
 
-        self.logger.debug('Trees generated for next generation: ', len(next_population))
         [tree.reset_cash() for tree in next_population]
         self.population = next_population
 
@@ -250,7 +243,8 @@ class PopulationManager:
     @logged_class_function
     def get_population_statistics(self):
         statistics = {
-            'average_value': sum([score_tree(tree, self.data_window) for tree in self.population]) / len(self.population),
+            'average_value': sum([score_tree(tree, self.data_window)
+                                  for tree in self.population]) / len(self.population),
             'values': [(index, tree.last_ev) for index, tree in enumerate(self.population)],
             'cash_on_hand': [(index, tree.dollar_count) for index, tree in enumerate(self.population)],
             'asset_on_hand': [(index, tree.asset_count) for index, tree in enumerate(self.population)],

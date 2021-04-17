@@ -1,27 +1,36 @@
 from pickle import load
 from download_data_from_ec2 import download_data_from_ec2
+import shutil
 import os
 from collections import defaultdict
 import matplotlib.pyplot as plt
 
 
-def visualize_run(run_id, epoch):
-    download_data_from_ec2(run_id, epoch)
+def visualize_epoch(run_id, epoch):
+    # download_data_from_ec2(run_id, epoch)
 
-    result_root_path = f'run_stats/{run_id}/epoch_{epoch}'
-    # TODO ls -- get latest epochs (completed & running) here
-    # current_epoch = sorted(os.listdir(result_root_path))[epoch]
+    # Unpack local
+    epoch_results_path = f"run_stats/{run_id}/epoch_{epoch}_stats.zip"
 
-    epoch_path = result_root_path
+    # Create space to unpack the file
+    extraction_directory = f"run_stats/{run_id}/extracted_epochs/epoch_{epoch}"
+    if not os.path.isdir(extraction_directory):
+        os.makedirs(extraction_directory)
+    shutil.unpack_archive(epoch_results_path, extraction_directory)
+
+    # Read from extracted files
     x_axis = []
     id_to_value_y_axis = defaultdict(list)
     id_to_asset_on_hand = defaultdict(list)
     id_to_cash_on_hand = defaultdict(list)
     btc_price_over_time = []
-    for stat_file_folder in sorted(os.listdir(epoch_path),
-                                   key=lambda folder_name: int(folder_name.split('_')[2])):
-        stat_file_full_path = f'{epoch_path}/{stat_file_folder}/stats.p'
-        x_axis.append(int(stat_file_folder.split('_')[2]))
+    for stat_file in sorted(os.listdir(extraction_directory)):
+        stat_file_full_path = f'{extraction_directory}/{stat_file}'
+
+        def get_time_from_stat_file(_stat_file):
+            return int(_stat_file.split('_')[1].split('.')[0])
+
+        x_axis.append(get_time_from_stat_file(stat_file))
         with open(stat_file_full_path, 'rb') as pickled_file:
             un_pickled_data = load(pickled_file)
             current_btc_price = un_pickled_data['current_btc_price']
@@ -47,4 +56,4 @@ def visualize_run(run_id, epoch):
     plt.show()
 
 
-visualize_run('ec2-30-minute-1', 151)
+visualize_epoch(run_id='local-viz-compression-4', epoch=3)
