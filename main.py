@@ -11,7 +11,7 @@ import os
 
 log = logger.get_logger(__name__)
 config = {
-    'run_id': 'ec2-viz-unpacking',
+    'run_id': 'normalize-score-2',
     'seconds_before_evaluation': 5,
     'epochs': 5
 }
@@ -25,6 +25,7 @@ population_config = {
     # Hyper parameters
     'population_size': 500,
     'frames': 5,
+    'starting_value': 1000,
 
     # API Call
     'keys_to_save': ['price', 'market_cap'],

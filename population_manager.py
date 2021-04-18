@@ -32,6 +32,7 @@ class PopulationManager:
         self.last_access_time = None
         self.logger.debug('Start time', self.last_access_time)
         self.data_window = self.get_real_time_data()
+        self.first_frame_price = None
 
     @logged_class_function
     def get_real_time_data(self):
@@ -219,7 +220,10 @@ class PopulationManager:
         # Just take more copies of elites to fill the gap
         next_population.extend(self.population[:leftover_trees])
 
+        # Housekeeping
         [tree.reset_cash() for tree in next_population]
+        self.first_frame_price = None
+
         self.population = next_population
 
     @logged_class_function
@@ -235,6 +239,8 @@ class PopulationManager:
     @logged_class_function
     def do_trades(self):
         self.data_window = self.get_real_time_data()
+        if self.first_frame_price is None:
+            self.first_frame_price = self.data_window[0]['price']
         for tree in self.population:
             decision = tree.get_decision(self.data_window)
             tree.dollar_count -= decision
@@ -250,4 +256,11 @@ class PopulationManager:
             'asset_on_hand': [(index, tree.asset_count) for index, tree in enumerate(self.population)],
             'current_btc_price': self.data_window[0]['price']
         }
+
+        initial_buyable_asset = self.config['starting_value'] / self.first_frame_price
+        initial_bought_value_asset = initial_buyable_asset * self.data_window[0]['price']
+        statistics['normalized_average_value'] = statistics['average_value'] / initial_bought_value_asset
+        statistics['normalized_values'] = [(index, value / initial_bought_value_asset)
+                                           for index, value in statistics['values']]
+
         return statistics
