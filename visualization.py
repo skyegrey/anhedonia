@@ -94,4 +94,4 @@ def visualize_epoch(run_id, epoch):
     plt.savefig(f"{graph_save_directory}/epoch_{epoch}_graph.png")
 
 
-visualize_epochs(run_id='normalize-score-2', epochs=[0, 1, 2, 3, 4])
+visualize_epochs(run_id='api-multithreading-test-5', epochs=[0, 1, 2, 3, 4])

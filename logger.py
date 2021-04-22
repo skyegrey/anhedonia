@@ -40,6 +40,10 @@ class FileLogger:
     def fatal(self, message):
         self.send_to_logger('FATAL', f'{message}')
 
+    def progress(self, message):
+        # A little unconventional, basically just give the output of progress
+        self.send_to_logger('PROGRESS', f'{message}')
+
 
 class Logger:
 

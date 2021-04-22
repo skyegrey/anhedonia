@@ -9,7 +9,8 @@ from time import sleep
 from copy import deepcopy
 from datetime import datetime
 import urllib.request
-from json import loads
+
+from api_manager import ApiManager
 
 
 def score_tree(tree, frame_data):
@@ -29,66 +30,21 @@ class PopulationManager:
         self.logger.set_level(self.config['log_level'])
         self.population_size = self.config['population_size']
         self.population = self.generate_initial_population()
-        self.last_access_time = None
-        self.logger.debug('Start time', self.last_access_time)
-        self.data_window = self.get_real_time_data()
-        self.first_frame_price = None
 
-    @logged_class_function
-    def get_real_time_data(self):
-        if self.last_access_time is None:
-            frames_to_collect = self.config['frames']
-            previous_frames = []
+        # Initialize api manager -- maybe by reference in the future O:
+        self.api_manager = ApiManager(config)
 
+        # Warmup API Manager
+        while not self.api_manager.is_warm:
+            sleep(1)
         else:
-            frames_to_collect = (datetime.now() - self.last_access_time).seconds
-            if frames_to_collect > self.config['frames']:
-                frames_to_collect = self.config['frames']
-                previous_frames = []
-            else:
-                previous_frames = self.data_window[frames_to_collect:]
+            self.logger.progress('API Manager is warm')
 
-        self.logger.debug(f'Frames to collect {frames_to_collect}')
-        # Get current time
-        # Setup API connection
-        url = f"https://api.nomics.com/v1/currencies/ticker?key={self.config['api_key']}" \
-              f"&ids=BTC&interval=1d,30d&convert=EUR"
+        # Housekeeping for later
+        self.last_frame_data = None
+        self.population_first_frame_price = None
 
-        collected_frames = []
-        for frame in range(frames_to_collect):
-            self.logger.debug(f'Collecting data from frame {frame}')
-            api_call_start_time = datetime.now()
-
-            max_api_tries = 25
-            for _ in range(max_api_tries):
-                try:
-                    request_return = urllib.request.urlopen(url, timeout=10).read().decode()
-                    break
-                except:
-                    self.logger.error('Failed to get frame data, retrying')
-                    sleep(1)
-                    continue
-            else:
-                self.logger.fatal('API Tries maxed out, no response received')
-                raise NotImplementedError()
-
-            stripped_request_return = request_return[1:-2]
-            request = loads(stripped_request_return)
-
-            frame_data = {}
-            for key in self.config['keys_to_save']:
-                value = request[key]
-                frame_data[key] = float(value)
-                frame_data['dollar_to_asset_ratio'] = 1 / float(value)
-                collected_frames.append(frame_data)
-            microseconds_elapsed = (datetime.now() - api_call_start_time).microseconds
-            seconds_to_sleep = self.config['seconds-per-frame'] - microseconds_elapsed / 1000000
-            if seconds_to_sleep > 0:
-                sleep(seconds_to_sleep)
-
-        collected_frames.extend(previous_frames)
-        self.last_access_time = datetime.now()
-        return collected_frames
+        # self.catchup_population()
 
     def get_terminal(self):
         terminal_to_create = choice(self.config['terminals'])
@@ -222,14 +178,13 @@ class PopulationManager:
 
         # Housekeeping
         [tree.reset_cash() for tree in next_population]
-        self.first_frame_price = None
+        self.population_first_frame_price = None
 
         self.population = next_population
 
     @logged_class_function
     def sort_population(self):
-        frame_data = self.get_real_time_data()
-        self.population.sort(key=lambda tree: score_tree(tree, frame_data), reverse=True)
+        self.population.sort(key=lambda tree: score_tree(tree, self.last_frame_data), reverse=True)
 
     @logged_class_function
     def get_best_candidate(self):
@@ -238,29 +193,32 @@ class PopulationManager:
 
     @logged_class_function
     def do_trades(self):
-        self.data_window = self.get_real_time_data()
-        if self.first_frame_price is None:
-            self.first_frame_price = self.data_window[0]['price']
+        self.last_frame_data = self.api_manager.get_window()
+        if self.population_first_frame_price is None:
+            self.population_first_frame_price = self.last_frame_data[0]['price']
         for tree in self.population:
-            decision = tree.get_decision(self.data_window)
+            decision = tree.get_decision(self.last_frame_data)
             tree.dollar_count -= decision
-            tree.asset_count += decision * self.data_window[0]['dollar_to_asset_ratio']
+            tree.asset_count += decision * self.last_frame_data[0]['dollar_to_asset_ratio']
 
     @logged_class_function
     def get_population_statistics(self):
         statistics = {
-            'average_value': sum([score_tree(tree, self.data_window)
+            'average_value': sum([score_tree(tree, self.last_frame_data)
                                   for tree in self.population]) / len(self.population),
             'values': [(index, tree.last_ev) for index, tree in enumerate(self.population)],
             'cash_on_hand': [(index, tree.dollar_count) for index, tree in enumerate(self.population)],
             'asset_on_hand': [(index, tree.asset_count) for index, tree in enumerate(self.population)],
-            'current_btc_price': self.data_window[0]['price']
+            'current_btc_price': self.last_frame_data[0]['price']
         }
 
-        initial_buyable_asset = self.config['starting_value'] / self.first_frame_price
-        initial_bought_value_asset = initial_buyable_asset * self.data_window[0]['price']
+        initial_buyable_asset = self.config['starting_value'] / self.population_first_frame_price
+        initial_bought_value_asset = initial_buyable_asset * self.last_frame_data[0]['price']
         statistics['normalized_average_value'] = statistics['average_value'] / initial_bought_value_asset
         statistics['normalized_values'] = [(index, value / initial_bought_value_asset)
                                            for index, value in statistics['values']]
 
         return statistics
+
+    def catchup_population(self):
+        pass

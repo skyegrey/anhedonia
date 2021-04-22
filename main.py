@@ -11,9 +11,9 @@ import os
 
 log = logger.get_logger(__name__)
 config = {
-    'run_id': 'normalize-score-2',
+    'run_id': 'api-multithreading-test-5',
     'seconds_before_evaluation': 5,
-    'epochs': 5
+    'epochs': 5,
 }
 
 NodeFunction = namedtuple('node_function', 'type function min_arity, max_arity')
@@ -29,9 +29,7 @@ population_config = {
 
     # API Call
     'keys_to_save': ['price', 'market_cap'],
-    'seconds-per-frame': 1,
     'api_key': '9f0216be33fc340939350523f2e6d36f',
-
 
     # Initial Population Generation
     'function_selection_chance': .5,
@@ -56,15 +54,16 @@ population_config = {
                   ],
 
     # Next generation operation odds
-    'replacement': .7,
-    'recombination': .2,
-    'mutation': .1
+    'replacement': .9,
+    'recombination': .09,
+    'mutation': .01
 }
 
 # Setup stat saving
 os.umask(0)
 run_path = f"run_stats/{config['run_id']}"
-os.mkdir(run_path)
+if not os.path.isdir(run_path):
+    os.mkdir(run_path)
 
 log.info('Generating initial population')
 population_manager = PopulationManager(population_config)
