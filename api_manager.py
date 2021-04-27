@@ -15,10 +15,11 @@ class ApiManager:
     @logged_initializer
     def __init__(self, config):
         self.config = config
+        self.logger.set_level(self.config['log_level'])
         self.frame_id = 0
         self.frames = deque(maxlen=config['frames']*2)
         self.is_warm = False
-        api_update_process = Thread(target=self.update)
+        api_update_process = Thread(target=self.update, daemon=True)
         api_update_process.start()
 
     @logged_class_function
@@ -33,9 +34,10 @@ class ApiManager:
 
             # Make the API call
             # TODO Error handling on url timeout / fail
+            request_return = None
             while True:
                 try:
-                    request_return = urllib.request.urlopen(url, timeout=1).read().decode()
+                    request_return = urllib.request.urlopen(url, timeout=2).read().decode()
                     break
                 except:
                     self.logger.error('Failed to get frame data, retrying')
@@ -76,3 +78,6 @@ class ApiManager:
     def get_window(self):
         window_size = self.config['frames']
         return list(islice(self.frames, 0, window_size))
+
+    def get_catchup_window(self):
+        return list(self.frames)

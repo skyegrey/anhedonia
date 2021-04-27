@@ -35,7 +35,8 @@ def visualize_epoch(run_id, epoch):
     average_tree_value_over_time = []
     normalized_average_tree_value_over_time = []
 
-    for stat_file in sorted(os.listdir(extraction_directory)):
+    for stat_file in sorted(os.listdir(extraction_directory), key=lambda file_path:
+                            int(file_path.split('/')[-1].split('_')[-1].replace('.p', ''))):
         stat_file_full_path = f'{extraction_directory}/{stat_file}'
 
         def get_time_from_stat_file(_stat_file):
@@ -89,9 +90,8 @@ def visualize_epoch(run_id, epoch):
     if not os.path.isdir(graph_save_directory):
         os.makedirs(graph_save_directory)
 
-
     plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
     plt.savefig(f"{graph_save_directory}/epoch_{epoch}_graph.png")
 
 
-visualize_epochs(run_id='api-multithreading-test-5', epochs=[0, 1, 2, 3, 4])
+visualize_epochs(run_id='window-catchup-trade-sliding', epochs=[0, 1, 2, 3, 4])

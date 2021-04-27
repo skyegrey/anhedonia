@@ -1,9 +1,13 @@
 import math
+import os
+import pickle
+import shutil
+
 from nodes.root_node import RootNode
 from nodes.terminal_node import TerminalNode
 from nodes.function_node import FunctionNode
 from random import choice, uniform, randint, random
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from logging_decorators import logged_initializer, logged_class_function, logged_class
 from time import sleep
 from copy import deepcopy
@@ -41,7 +45,6 @@ class PopulationManager:
             self.logger.progress('API Manager is warm')
 
         # Housekeeping for later
-        self.last_frame_data = None
         self.population_first_frame_price = None
 
         # self.catchup_population()
@@ -95,8 +98,8 @@ class PopulationManager:
         return population
 
     @logged_class_function
-    def generate_next_generation(self):
-        self.sort_population()
+    def generate_next_generation(self, window):
+        self.sort_population(window)
 
         # Okay here we go
         next_population = []
@@ -183,42 +186,98 @@ class PopulationManager:
         self.population = next_population
 
     @logged_class_function
-    def sort_population(self):
-        self.population.sort(key=lambda tree: score_tree(tree, self.last_frame_data), reverse=True)
+    def sort_population(self, window):
+        self.population.sort(key=lambda tree: score_tree(tree, window), reverse=True)
 
     @logged_class_function
-    def get_best_candidate(self):
-        self.sort_population()
+    def get_best_candidate(self, window):
+        self.sort_population(window)
         return self.population[0]
 
     @logged_class_function
-    def do_trades(self):
-        self.last_frame_data = self.api_manager.get_window()
+    def do_trades(self, window):
+        print(f'Window ID: {window[0]["frame_id"]}')
         if self.population_first_frame_price is None:
-            self.population_first_frame_price = self.last_frame_data[0]['price']
+            self.population_first_frame_price = window[0]['price']
         for tree in self.population:
-            decision = tree.get_decision(self.last_frame_data)
+            decision = tree.get_decision(window)
             tree.dollar_count -= decision
-            tree.asset_count += decision * self.last_frame_data[0]['dollar_to_asset_ratio']
+            tree.asset_count += decision * window[0]['dollar_to_asset_ratio']
 
     @logged_class_function
-    def get_population_statistics(self):
+    def get_population_statistics(self, window):
         statistics = {
-            'average_value': sum([score_tree(tree, self.last_frame_data)
+            'average_value': sum([score_tree(tree, window)
                                   for tree in self.population]) / len(self.population),
             'values': [(index, tree.last_ev) for index, tree in enumerate(self.population)],
             'cash_on_hand': [(index, tree.dollar_count) for index, tree in enumerate(self.population)],
             'asset_on_hand': [(index, tree.asset_count) for index, tree in enumerate(self.population)],
-            'current_btc_price': self.last_frame_data[0]['price']
+            'current_btc_price': window[0]['price']
         }
 
         initial_buyable_asset = self.config['starting_value'] / self.population_first_frame_price
-        initial_bought_value_asset = initial_buyable_asset * self.last_frame_data[0]['price']
+        initial_bought_value_asset = initial_buyable_asset * window[0]['price']
         statistics['normalized_average_value'] = statistics['average_value'] / initial_bought_value_asset
         statistics['normalized_values'] = [(index, value / initial_bought_value_asset)
                                            for index, value in statistics['values']]
-
         return statistics
 
     def catchup_population(self):
         pass
+
+    def train(self):
+        # Setup stat saving
+        os.umask(0)
+        run_path = f"run_stats/{self.config['run_id']}"
+        if not os.path.isdir(run_path):
+            os.mkdir(run_path)
+
+        for epoch in range(self.config['epochs']):
+            self.logger.progress(f'Starting Epoch {epoch}')
+
+            save_directory = f"{run_path}/epoch_{epoch}"
+            if not os.path.isdir(save_directory):
+                os.mkdir(save_directory, 0o777)
+
+            # Do catchup trades
+            catchup_window = self.api_manager.get_catchup_window()
+            for frame_index in range(self.config['frames']):
+                catchup_frame = catchup_window[self.config['frames'] - frame_index:len(catchup_window) - frame_index]
+                self.do_trades(catchup_frame)
+                stats = self.get_population_statistics(catchup_frame)
+                with open(f'{save_directory}/stats_{frame_index}.p', 'wb') as fp:
+                    pickle.dump(stats, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
+            # Add in extra catchup frames from evaluation (recursively)
+
+            # Do live trades
+            time_elapsed = 0
+            window = None
+            while time_elapsed < self.config['seconds_before_evaluation']:
+                # log.info(f"Trading, time left: {config['seconds_before_evaluation'] - time_elapsed}")
+                trade_start_time = datetime.now()
+                window = self.api_manager.get_window()
+                self.do_trades(window)
+                stats = self.get_population_statistics(window)
+
+                # Save stats of the run
+                with open(f'{save_directory}/stats_{time_elapsed + self.config["frames"]}.p', 'wb') as fp:
+                    pickle.dump(stats, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
+                # TODO On next frame from API manager
+                sleep(1)
+                time_elapsed += (datetime.now() - trade_start_time).seconds
+                self.logger.info(f'Epoch_{epoch}: Time Elapsed: {time_elapsed}')
+
+            # Zip the epoch data
+            self.logger.info('Zipping stats')
+            output_filename = f"{run_path}/epoch_{epoch}_stats"
+            shutil.make_archive(output_filename, 'zip', save_directory)
+
+            # Unlink to save space
+            self.logger.info('Removing old stats')
+            shutil.rmtree(save_directory)
+
+            # log.debug('Generation average EV: ', population_manager.get_population_statistics()['average_value'])
+            self.logger.info('Generating next generation of trees')
+            self.generate_next_generation(window)
