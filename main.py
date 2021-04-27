@@ -11,14 +11,14 @@ TerminalTemplate = namedtuple('TerminalTemplate', 'type value')
 population_config = {
     'run_id': 'window-catchup-trade-sliding',
     'seconds_before_evaluation': 1,
-    'epochs': 5,
+    'epochs': 500,
 
     # Logging
     'log_level': 'DEBUG',
 
     # Hyper parameters
     'population_size': 500,
-    'frames': 20,
+    'frames': 3600,
     'starting_value': 1000,
 
     # API Call

@@ -196,7 +196,6 @@ class PopulationManager:
 
     @logged_class_function
     def do_trades(self, window):
-        print(f'Window ID: {window[0]["frame_id"]}')
         if self.population_first_frame_price is None:
             self.population_first_frame_price = window[0]['price']
         for tree in self.population:
@@ -240,6 +239,7 @@ class PopulationManager:
                 os.mkdir(save_directory, 0o777)
 
             # Do catchup trades
+            catchup_trade_start_time = datetime.now()
             catchup_window = self.api_manager.get_catchup_window()
             for frame_index in range(self.config['frames']):
                 catchup_frame = catchup_window[self.config['frames'] - frame_index:len(catchup_window) - frame_index]
@@ -247,6 +247,8 @@ class PopulationManager:
                 stats = self.get_population_statistics(catchup_frame)
                 with open(f'{save_directory}/stats_{frame_index}.p', 'wb') as fp:
                     pickle.dump(stats, fp, protocol=pickle.HIGHEST_PROTOCOL)
+            catchup_trade_time_elapsed = (datetime.now() - catchup_trade_start_time).seconds
+            self.logger.progress(f"{catchup_trade_time_elapsed} seconds of catchup trades")
 
             # Add in extra catchup frames from evaluation (recursively)
 
