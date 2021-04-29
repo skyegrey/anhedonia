@@ -14,6 +14,8 @@ class RootNode(FunctionNode):
         self.attempted_last_decision = 0
         self.starting_ev = 1000
         self.last_ev = 1000
+        self.traded_cash = False
+        self.traded_btc = False
 
     def reset_cash(self):
         self.dollar_count = 1000
@@ -22,6 +24,8 @@ class RootNode(FunctionNode):
         self.attempted_last_decision = 0
         self.starting_ev = 1000
         self.last_ev = 1000
+        self.traded_cash = False
+        self.traded_btc = False
     
     def get_decision(self, frame_data):
         root_statistics = {
@@ -46,4 +50,9 @@ class RootNode(FunctionNode):
             decision = 0
 
         self.last_decision = decision
+        if decision > 0:
+            self.traded_cash = True
+        elif decision < 0:
+            self.traded_btc = True
+
         return decision

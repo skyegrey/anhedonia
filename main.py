@@ -18,7 +18,7 @@ population_config = {
 
     # Hyper parameters
     'population_size': 500,
-    'frames': 3600,
+    'frames': 50,
     'starting_value': 1000,
 
     # API Call

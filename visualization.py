@@ -13,7 +13,7 @@ def visualize_epochs(run_id, epochs):
 
 
 def visualize_epoch(run_id, epoch):
-    # download_data_from_ec2(run_id, epoch)
+    download_data_from_ec2(run_id, epoch)
 
     # Unpack local
     epoch_results_path = f"run_stats/{run_id}/epoch_{epoch}_stats.zip"
@@ -92,6 +92,7 @@ def visualize_epoch(run_id, epoch):
 
     plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
     plt.savefig(f"{graph_save_directory}/epoch_{epoch}_graph.png")
+    plt.close('all')
 
 
-visualize_epochs(run_id='window-catchup-trade-sliding', epochs=[0, 1, 2, 3, 4])
+visualize_epochs(run_id='window-catchup-trade-sliding-2', epochs=[i for i in range(216, 270)])

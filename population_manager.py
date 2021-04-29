@@ -22,7 +22,13 @@ def score_tree(tree, frame_data):
     tree_value = tree.dollar_count + tree.asset_count * asset_to_dollar_ratio
     tree.last_ev = tree_value
 
-    return tree_value
+    fitness = tree_value
+    if not tree.traded_cash:
+        fitness /= 2
+    if not tree.traded_btc:
+        fitness /= 2
+
+    return fitness
 
 
 @logged_class
