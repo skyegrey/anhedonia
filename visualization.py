@@ -13,7 +13,7 @@ def visualize_epochs(run_id, epochs):
 
 
 def visualize_epoch(run_id, epoch):
-    download_data_from_ec2(run_id, epoch)
+    # download_data_from_ec2(run_id, epoch)
 
     # Unpack local
     epoch_results_path = f"run_stats/{run_id}/epoch_{epoch}_stats.zip"
@@ -95,4 +95,4 @@ def visualize_epoch(run_id, epoch):
     plt.close('all')
 
 
-visualize_epochs(run_id='window-catchup-trade-sliding-2', epochs=[i for i in range(216, 270)])
+visualize_epochs(run_id='fitness-adjustment-1', epochs=[i for i in range(100, 150)])

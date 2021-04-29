@@ -45,7 +45,7 @@ class RootNode(FunctionNode):
             decision = 0
 
         # Stops small trades from happening
-        decision_threshold = 1
+        decision_threshold = 100
         if abs(decision) < decision_threshold:
             decision = 0
 

@@ -21,6 +21,12 @@ def score_tree(tree, frame_data):
     asset_to_dollar_ratio = 1 / frame_data[0]['dollar_to_asset_ratio']
     tree_value = tree.dollar_count + tree.asset_count * asset_to_dollar_ratio
     tree.last_ev = tree_value
+    return tree_value
+
+
+def get_tree_fitness(tree, frame_data):
+    asset_to_dollar_ratio = 1 / frame_data[0]['dollar_to_asset_ratio']
+    tree_value = tree.dollar_count + tree.asset_count * asset_to_dollar_ratio
 
     fitness = tree_value
     if not tree.traded_cash:
@@ -193,7 +199,7 @@ class PopulationManager:
 
     @logged_class_function
     def sort_population(self, window):
-        self.population.sort(key=lambda tree: score_tree(tree, window), reverse=True)
+        self.population.sort(key=lambda tree: get_tree_fitness(tree, window), reverse=True)
 
     @logged_class_function
     def get_best_candidate(self, window):

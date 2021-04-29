@@ -69,7 +69,7 @@ class ApiManager:
                 self.is_warm = True
             else:
                 if len(self.frames) % 100 == 0:
-                    print(f'Warming up frame {len(self.frames)} of {self.frames.maxlen}')
+                    self.logger.progress(f'Warming up frame {len(self.frames)} of {self.frames.maxlen}')
 
             # Get appropriate time to wait
             api_call_end_time = datetime.now()

@@ -9,7 +9,7 @@ log = logger.get_logger(__name__)
 NodeFunction = namedtuple('node_function', 'type function min_arity, max_arity')
 TerminalTemplate = namedtuple('TerminalTemplate', 'type value')
 population_config = {
-    'run_id': 'window-catchup-trade-sliding',
+    'run_id': 'ec2-fitness-adjustment',
     'seconds_before_evaluation': 1,
     'epochs': 500,
 
@@ -18,7 +18,7 @@ population_config = {
 
     # Hyper parameters
     'population_size': 500,
-    'frames': 50,
+    'frames': 3600,
     'starting_value': 1000,
 
     # API Call
