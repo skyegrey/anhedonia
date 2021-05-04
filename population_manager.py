@@ -146,7 +146,12 @@ class PopulationManager:
 
         # Positionally weighted reselection
         for _ in range(trees_from_last_generation_count):
-            next_population.append(self.population[get_weighted_random_index()])
+            try:
+                index = get_weighted_random_index()
+                next_population.append(self.population[index])
+            except IndexError:
+                print(f'Index error, tried to select index: {index}')
+                next_population.append(self.population[-1])
 
         # Recombination
         trees_to_recombine = round(self.config['recombination'] * self.population_size)
@@ -179,8 +184,19 @@ class PopulationManager:
 
         for _ in range(trees_to_recombine):
             # Select parents
-            parent_1 = deepcopy(self.population[get_weighted_random_index()])
-            parent_2 = deepcopy(self.population[get_weighted_random_index()])
+            try:
+                index = get_weighted_random_index()
+                parent_1 = deepcopy(self.population[index])
+            except IndexError:
+                print(f'Index error, tried to select index: {index}')
+                parent_1 = deepcopy(self.population[-1])
+
+            try:
+                index = get_weighted_random_index()
+                parent_2 = deepcopy(self.population[index])
+            except IndexError:
+                print(f'Index error, tried to select index: {index}')
+                parent_2 = deepcopy(self.population[-1])
 
             # Get all nodes
             parent_1_function_nodes = get_all_function_nodes(parent_1)
