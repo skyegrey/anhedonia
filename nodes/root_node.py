@@ -1,4 +1,5 @@
 from nodes.function_node import FunctionNode
+from datetime import datetime
 
 
 class RootNode(FunctionNode):
@@ -16,6 +17,7 @@ class RootNode(FunctionNode):
         self.last_ev = 1000
         self.traded_cash = False
         self.traded_btc = False
+        self.time_to_decide = 0
 
     def reset_cash(self):
         self.dollar_count = 1000
@@ -24,6 +26,7 @@ class RootNode(FunctionNode):
         self.attempted_last_decision = 0
         self.starting_ev = 1000
         self.last_ev = 1000
+        self.time_to_decide = 0
         self.traded_cash = False
         self.traded_btc = False
     
@@ -33,7 +36,12 @@ class RootNode(FunctionNode):
             'asset_count': self.asset_count,
             'last_ev': self.last_ev
         }
+
+        starting_calculation_time = datetime.now()
         decision = self.calculate(frame_data, root_statistics)
+        time_to_decide = (datetime.now() - starting_calculation_time).microseconds
+        self.time_to_decide = time_to_decide
+
         self.attempted_last_decision = decision
 
         # If the amount to trade is more than the account has, do not trade

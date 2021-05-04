@@ -11,7 +11,7 @@ from collections import namedtuple, defaultdict
 from logging_decorators import logged_initializer, logged_class_function, logged_class
 from time import sleep
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timedelta
 import urllib.request
 
 from api_manager import ApiManager
@@ -34,6 +34,13 @@ def get_tree_fitness(tree, window, initial_bought_value_asset):
         fitness /= 2
     if not tree.traded_btc:
         fitness /= 2
+
+    # Penalize long trading trees
+    max_trade_time = timedelta(seconds=5)
+    population_size = 500
+    max_trade_time_per_tree = (max_trade_time / population_size).microseconds
+    if tree.time_to_decide > max_trade_time_per_tree:
+        fitness = 0
 
     return fitness
 
@@ -98,16 +105,19 @@ class PopulationManager:
     @logged_class_function
     def generate_initial_population(self):
         population = []
-        for specimen_count in range(self.population_size):
+        trees_to_generate = self.config['population_size']
+        depth = 1
 
-            if specimen_count < 250:
-                population.append(self.get_function_node(0, 1))
-            elif specimen_count < 325:
-                population.append(self.get_function_node(0, 2))
-            elif specimen_count < 387:
-                population.append(self.get_function_node(0, 3))
-            else:
-                population.append(self.get_function_node(0, 4))
+        next_step_trees = math.floor(trees_to_generate / 2)
+        while next_step_trees >= 1:
+
+            for _ in range(next_step_trees):
+                population.append(self.get_function_node(0, depth))
+
+            trees_to_generate -= next_step_trees
+            next_step_trees = math.floor(trees_to_generate / 2)
+            depth += 1
+
         return population
 
     @logged_class_function

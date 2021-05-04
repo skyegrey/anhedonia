@@ -41,7 +41,9 @@ class ApiManager:
                     break
                 except:
                     self.logger.error('Failed to get frame data, retrying')
-                    sleep(1)
+
+                    # I think the API gets overwhelmed, so lets try waiting it out for 2 seconds...
+                    sleep(2)
                     continue
 
             stripped_request_return = request_return[1:-2]
