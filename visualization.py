@@ -95,4 +95,4 @@ def visualize_epoch(run_id, epoch):
     plt.close('all')
 
 
-visualize_epochs(run_id='fitness-adjustment-1', epochs=[i for i in range(100, 150)])
+visualize_epochs(run_id='fitness-based-reselection-2', epochs=[i for i in range(0, 21)])

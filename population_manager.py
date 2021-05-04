@@ -24,11 +24,12 @@ def score_tree(tree, frame_data):
     return tree_value
 
 
-def get_tree_fitness(tree, frame_data):
-    asset_to_dollar_ratio = 1 / frame_data[0]['dollar_to_asset_ratio']
+def get_tree_fitness(tree, window, initial_bought_value_asset):
+    asset_to_dollar_ratio = 1 / window[0]['dollar_to_asset_ratio']
     tree_value = tree.dollar_count + tree.asset_count * asset_to_dollar_ratio
+    normalized_tree_value = tree_value / initial_bought_value_asset
 
-    fitness = tree_value
+    fitness = normalized_tree_value
     if not tree.traded_cash:
         fitness /= 2
     if not tree.traded_btc:
@@ -111,18 +112,6 @@ class PopulationManager:
 
     @logged_class_function
     def generate_next_generation(self, window):
-        self.sort_population(window)
-
-        # Okay here we go
-        next_population = []
-        trees_from_last_generation_count = round(self.config['replacement'] * self.population_size)
-
-        # For now, just take elites
-        trees_from_last_generation = self.population[:trees_from_last_generation_count]
-        next_population.extend(trees_from_last_generation)
-
-        # Recombination
-        trees_to_recombine = round(self.config['recombination'] * self.population_size)
 
         def get_weighted_random_index():
             random_int_range = (self.population_size / 2) * (self.population_size + 1)
@@ -130,6 +119,27 @@ class PopulationManager:
             b = 2 * self.population_size + 1
             random_index = math.floor((-b + math.sqrt(b ** 2 - 8 * random_choice)) / (-2))
             return random_index
+
+        # In this step, get fitness alongside the sort
+        # sorted_fitness_index_pairs = self.sort_population_with_fitness(window)
+        self.sort_population(window)
+
+        # Okay here we go
+        next_population = []
+
+        # Take an amount of elites
+        elites = 10
+        elites_from_last_generation = self.population[:elites]
+        next_population.extend(elites_from_last_generation)
+
+        trees_from_last_generation_count = round(self.config['replacement'] * self.population_size) - elites
+
+        # Positionally weighted reselection
+        for _ in range(trees_from_last_generation_count):
+            next_population.append(self.population[get_weighted_random_index()])
+
+        # Recombination
+        trees_to_recombine = round(self.config['recombination'] * self.population_size)
 
         def get_all_function_nodes(tree, nodes=None):
             if type(tree) == TerminalNode:
@@ -199,7 +209,14 @@ class PopulationManager:
 
     @logged_class_function
     def sort_population(self, window):
-        self.population.sort(key=lambda tree: get_tree_fitness(tree, window), reverse=True)
+        initial_buyable_asset = self.config['starting_value'] / self.population_first_frame_price
+        initial_bought_value_asset = initial_buyable_asset * window[0]['price']
+        self.population.sort(key=lambda tree: get_tree_fitness(tree, window, initial_bought_value_asset), reverse=True)
+
+    # def sort_population_with_fitness(self, window):
+    #     fitnesses_with_index = [(get_tree_fitness(tree, window, initial_bought_value_asset), index) for index, tree in enumerate(self.population)]
+    #     fitnesses_with_index.sort(key=lambda fitness_index: fitness_index[0], reverse=True)
+    #     return fitnesses_with_index
 
     @logged_class_function
     def get_best_candidate(self, window):
@@ -232,9 +249,6 @@ class PopulationManager:
         statistics['normalized_values'] = [(index, value / initial_bought_value_asset)
                                            for index, value in statistics['values']]
         return statistics
-
-    def catchup_population(self):
-        pass
 
     def train(self):
         # Setup stat saving

@@ -68,7 +68,7 @@ class ApiManager:
             elif len(self.frames) == self.frames.maxlen:
                 self.is_warm = True
             else:
-                if len(self.frames) % 100 == 0:
+                if len(self.frames) % 10 == 0:
                     self.logger.progress(f'Warming up frame {len(self.frames)} of {self.frames.maxlen}')
 
             # Get appropriate time to wait
